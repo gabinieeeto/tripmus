@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <title>Tripmus - Viajes</title>
+  <style>
+    :root {
+      --color-fondo: #F7F3EC;
+      --color-texto: #1E1B34;
+      --color-texto-suave: #6b6880;
+      --color-borde: #e6e0d4;
+      --color-marca: #FF6B45;
+      --color-acento-teal: #1FADA6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background-color: var(--color-fondo);
+      color: var(--color-texto);
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+    }
+    .logo-tripmus {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      font-family: "Fredoka", sans-serif;
+      font-weight: 600;
+      font-size: 22px;
+      margin-bottom: 14px;
+    }
+    .logo-tripmus .punto { color: var(--color-marca); font-size: 26px; line-height: 0; }
+    .nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--color-borde);
+      padding-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .nav a {
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-texto-suave);
+      padding: 6px 12px;
+      border-radius: 20px;
+    }
+    .nav a.activo { background-color: var(--color-marca); color: white; }
+    h1 { font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 20px; margin-bottom: 4px; }
+    p.subtitulo { color: var(--color-texto-suave); font-size: 14px; margin-top: 0; margin-bottom: 20px; }
+    input, select {
+      padding: 10px 12px;
+      border: 1px solid var(--color-borde);
+      border-radius: 12px;
+      font-size: 14px;
+      background: white;
+      width: 100%;
+    }
+    .fila-inputs { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .fila-inputs > * { flex: 1; min-width: 120px; }
+    button {
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background-color: var(--color-marca);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      width: 100%;
+      transition: transform 0.08s ease;
+    }
+    button:active { transform: scale(0.98); }
+    #mensaje-estado { font-size: 13px; color: var(--color-texto-suave); margin: 10px 0 28px; }
+    h2.seccion { font-size: 15px; margin-bottom: 10px; font-family: "Fredoka", sans-serif; }
+    .tarjeta-viaje {
+      display: block;
+      background: white;
+      border: 1px solid var(--color-borde);
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      text-decoration: none;
+      color: var(--color-texto);
+      box-shadow: 0 1px 3px rgba(30, 27, 52, 0.04);
+      transition: box-shadow 0.15s ease, transform 0.15s ease;
+    }
+    .tarjeta-viaje:hover { box-shadow: 0 4px 14px rgba(30, 27, 52, 0.08); transform: translateY(-1px); }
+    .tarjeta-viaje .nombre { font-weight: 600; margin-bottom: 2px; }
+    .tarjeta-viaje .detalle { font-size: 12px; color: var(--color-texto-suave); }
+    .caja-crear {
+      background: white;
+      border: 1px solid var(--color-borde);
+      border-radius: 16px;
+      padding: 16px;
+      margin-top: 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="logo-tripmus">Tripmus<span class="punto">.</span></div>
+
+  <div class="nav">
+    <a href="index.html">Mi disponibilidad</a>
+    <a href="tripmus-grupo.html">Ver grupo</a>
+    <a href="tripmus-presupuesto.html">Presupuesto</a>
+    <a href="tripmus-recomendaciones.html">Recomendaciones</a>
+    <a href="tripmus-viajes.html" class="activo">Viajes</a>
+  </div>
+
+  <h1>Viajes del grupo</h1>
+  <p class="subtitulo">Cada viaje decidido tiene su propio espacio para centralizar vuelos, alojamiento y actividades.</p>
+
+  <div class="fila-inputs">
+    <input type="text" id="grupo" placeholder="Código de grupo" value="demo">
+    <button id="ver-viajes" style="max-width: 160px;">Ver viajes</button>
+  </div>
+
+  <p id="mensaje-estado"></p>
+
+  <div id="lista-viajes"></div>
+
+  <div class="caja-crear">
+    <h2 class="seccion">Crear un viaje nuevo</h2>
+    <input type="text" id="nombre-viaje" placeholder="Nombre del viaje (ej: Zakopane diciembre)" style="margin-bottom: 10px;">
+    <input type="text" id="destino-viaje" placeholder="Destino" style="margin-bottom: 10px;">
+    <div class="fila-inputs">
+      <input type="date" id="fecha-inicio">
+      <input type="date" id="fecha-fin">
+    </div>
+    <button id="crear-viaje">Crear viaje</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const supabaseUrl = "https://jhowamfmrrhxphhijgsn.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impob3dhbWZtcnJoeHBoaGlqZ3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzI3ODcsImV4cCI6MjEwMzc0ODc4N30.EwJi9JrniY3SpQPSl-JtnnwSLxCzMIpMQHLN4P7PUhE";
+    const cliente = supabase.createClient(supabaseUrl, supabaseKey);
+
+    const mensajeEstado = document.getElementById("mensaje-estado");
+
+    async function verViajes() {
+      const grupo = document.getElementById("grupo").value.trim();
+      if (grupo === "") { alert("Escribe un código de grupo"); return; }
+
+      mensajeEstado.textContent = "Cargando viajes...";
+
+      const resultado = await cliente
+        .from("viajes")
+        .select("id, nombre, destino, fecha_inicio, fecha_fin")
+        .eq("grupo", grupo)
+        .order("creado_en", { ascending: false });
+
+      if (resultado.error) {
+        console.error("Supabase error:", resultado.error.message);
+        mensajeEstado.textContent = "Error al cargar los viajes.";
+        return;
+      }
+
+      mensajeEstado.textContent = "";
+      const contenedor = document.getElementById("lista-viajes");
+      contenedor.innerHTML = "";
+
+      if (resultado.data.length === 0) {
+        contenedor.innerHTML = '<p style="font-size:14px; color: var(--color-texto-suave);">Todavía no hay viajes creados en este grupo. Crea el primero abajo.</p>';
+        return;
+      }
+
+      resultado.data.forEach(function (viaje) {
+        const enlace = document.createElement("a");
+        // Aquí está el truco clave: pasamos el id del viaje y el grupo
+        // como PARÁMETROS EN LA URL, para que la pantalla de detalle
+        // sepa de qué viaje concreto tiene que traer los enlaces.
+        enlace.href = "tripmus-viaje-detalle.html?viaje=" + viaje.id + "&grupo=" + encodeURIComponent(grupo);
+        enlace.classList.add("tarjeta-viaje");
+
+        const fechas = (viaje.fecha_inicio && viaje.fecha_fin)
+          ? viaje.fecha_inicio + " → " + viaje.fecha_fin
+          : "Fechas por definir";
+
+        enlace.innerHTML =
+          '<div class="nombre">' + viaje.nombre + '</div>' +
+          '<div class="detalle">' + (viaje.destino || "Destino por definir") + ' · ' + fechas + '</div>';
+
+        contenedor.appendChild(enlace);
+      });
+    }
+
+    document.getElementById("ver-viajes").addEventListener("click", verViajes);
+
+    document.getElementById("crear-viaje").addEventListener("click", async function () {
+      const grupo = document.getElementById("grupo").value.trim();
+      const nombre = document.getElementById("nombre-viaje").value.trim();
+      const destino = document.getElementById("destino-viaje").value.trim();
+      const fechaInicio = document.getElementById("fecha-inicio").value;
+      const fechaFin = document.getElementById("fecha-fin").value;
+
+      if (grupo === "" || nombre === "") {
+        alert("Escribe al menos el código de grupo y el nombre del viaje");
+        return;
+      }
+
+      mensajeEstado.textContent = "Creando viaje...";
+
+      const resultado = await cliente.from("viajes").insert({
+        grupo: grupo,
+        nombre: nombre,
+        destino: destino === "" ? null : destino,
+        fecha_inicio: fechaInicio === "" ? null : fechaInicio,
+        fecha_fin: fechaFin === "" ? null : fechaFin
+      });
+
+      if (resultado.error) {
+        console.error("Supabase error:", resultado.error.message);
+        mensajeEstado.textContent = "Error al crear el viaje: " + resultado.error.message;
+        return;
+      }
+
+      mensajeEstado.textContent = "Viaje creado.";
+      document.getElementById("nombre-viaje").value = "";
+      document.getElementById("destino-viaje").value = "";
+      document.getElementById("fecha-inicio").value = "";
+      document.getElementById("fecha-fin").value = "";
+
+      verViajes(); // recargamos la lista para que aparezca el nuevo viaje
+    });
+
+    // Al abrir la página, cargamos ya los viajes del grupo por defecto
+    verViajes();
+  </script>
+</body>
+</html>

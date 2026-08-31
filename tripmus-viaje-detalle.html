@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <title>Tripmus - Detalle del viaje</title>
+  <style>
+    :root {
+      --color-fondo: #F7F3EC;
+      --color-texto: #1E1B34;
+      --color-texto-suave: #6b6880;
+      --color-borde: #e6e0d4;
+      --color-marca: #FF6B45;
+      --color-acento-teal: #1FADA6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background-color: var(--color-fondo);
+      color: var(--color-texto);
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+    }
+    .logo-tripmus {
+      display: flex; align-items: center; gap: 2px;
+      font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 22px; margin-bottom: 14px;
+    }
+    .logo-tripmus .punto { color: var(--color-marca); font-size: 26px; line-height: 0; }
+    a.volver {
+      display: inline-block;
+      font-size: 13px;
+      color: var(--color-texto-suave);
+      text-decoration: none;
+      margin-bottom: 16px;
+    }
+    h1 { font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 20px; margin-bottom: 2px; }
+    p.subtitulo { color: var(--color-texto-suave); font-size: 14px; margin-top: 0; margin-bottom: 20px; }
+    select, input {
+      padding: 10px 12px;
+      border: 1px solid var(--color-borde);
+      border-radius: 12px;
+      font-size: 14px;
+      background: white;
+      width: 100%;
+    }
+    .caja-anadir {
+      background: white;
+      border: 1px solid var(--color-borde);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+    .caja-anadir > * { margin-bottom: 10px; }
+    button {
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background-color: var(--color-marca);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      width: 100%;
+      transition: transform 0.08s ease;
+    }
+    button:active { transform: scale(0.98); }
+    #mensaje-estado { font-size: 13px; color: var(--color-texto-suave); margin: 4px 0 24px; }
+
+    h2.grupo-tipo {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--color-texto-suave);
+      margin: 20px 0 8px;
+    }
+
+    .tarjeta-enlace {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      background: white;
+      border: 1px solid var(--color-borde);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 8px;
+    }
+    .tarjeta-enlace .info { min-width: 0; }
+    .tarjeta-enlace .titulo { font-weight: 600; font-size: 14px; }
+    .tarjeta-enlace .quien { font-size: 12px; color: var(--color-texto-suave); }
+    .tarjeta-enlace a.abrir {
+      flex-shrink: 0;
+      font-size: 12px;
+      font-weight: 600;
+      color: white;
+      background-color: var(--color-acento-teal);
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="logo-tripmus">Tripmus<span class="punto">.</span></div>
+  <a class="volver" href="tripmus-viajes.html">&larr; Volver a viajes</a>
+
+  <h1 id="titulo-viaje">Cargando viaje...</h1>
+  <p class="subtitulo" id="subtitulo-viaje"></p>
+
+  <div class="caja-anadir">
+    <select id="tipo-enlace">
+      <option value="vuelo">✈️ Vuelo</option>
+      <option value="alojamiento">🛏️ Alojamiento</option>
+      <option value="actividad">🎟️ Actividad</option>
+      <option value="otro">🔗 Otro</option>
+    </select>
+    <input type="text" id="titulo-enlace" placeholder="Título (ej: Vuelo Cracovia-Oslo, Ryanair)">
+    <input type="text" id="url-enlace" placeholder="Enlace (https://...)">
+    <input type="text" id="anadido-por" placeholder="Tu nombre">
+    <button id="anadir-enlace">Añadir enlace</button>
+  </div>
+
+  <p id="mensaje-estado"></p>
+
+  <div id="lista-enlaces"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const supabaseUrl = "https://jhowamfmrrhxphhijgsn.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impob3dhbWZtcnJoeHBoaGlqZ3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzI3ODcsImV4cCI6MjEwMzc0ODc4N30.EwJi9JrniY3SpQPSl-JtnnwSLxCzMIpMQHLN4P7PUhE";
+    const cliente = supabase.createClient(supabaseUrl, supabaseKey);
+
+    // ---------- LEER PARÁMETROS DE LA URL ----------
+    // Cuando entras aquí desde "Ver viajes", la URL tiene esta forma:
+    // tripmus-viaje-detalle.html?viaje=abc123&grupo=demo
+    // URLSearchParams nos deja leer esa parte de la URL como si fuera
+    // un pequeño diccionario, sin tener que trocear el texto a mano.
+    const parametros = new URLSearchParams(window.location.search);
+    const viajeId = parametros.get("viaje");
+    const grupo = parametros.get("grupo");
+
+    const etiquetasTipo = {
+      vuelo: "✈️ Vuelo",
+      alojamiento: "🛏️ Alojamiento",
+      actividad: "🎟️ Actividad",
+      otro: "🔗 Otro"
+    };
+
+    if (!viajeId) {
+      document.getElementById("titulo-viaje").textContent = "No se ha indicado ningún viaje";
+      document.getElementById("subtitulo-viaje").textContent = "Vuelve a la lista de viajes y entra desde una tarjeta.";
+    } else {
+      cargarViaje();
+      cargarEnlaces();
+    }
+
+    async function cargarViaje() {
+      const resultado = await cliente
+        .from("viajes")
+        .select("nombre, destino, fecha_inicio, fecha_fin")
+        .eq("id", viajeId)
+        .maybeSingle();
+
+      if (resultado.error || !resultado.data) {
+        document.getElementById("titulo-viaje").textContent = "No se ha podido cargar el viaje";
+        return;
+      }
+
+      const v = resultado.data;
+      document.getElementById("titulo-viaje").textContent = v.nombre;
+      const fechas = (v.fecha_inicio && v.fecha_fin) ? v.fecha_inicio + " → " + v.fecha_fin : "Fechas por definir";
+      document.getElementById("subtitulo-viaje").textContent = (v.destino || "Destino por definir") + " · " + fechas;
+    }
+
+    async function cargarEnlaces() {
+      const resultado = await cliente
+        .from("enlaces_viaje")
+        .select("tipo, titulo, url, anadido_por")
+        .eq("viaje_id", viajeId)
+        .order("creado_en", { ascending: true });
+
+      const contenedor = document.getElementById("lista-enlaces");
+      contenedor.innerHTML = "";
+
+      if (resultado.error) {
+        console.error("Supabase error:", resultado.error.message);
+        return;
+      }
+
+      if (resultado.data.length === 0) {
+        contenedor.innerHTML = '<p style="font-size:14px; color: var(--color-texto-suave);">Todavía no hay enlaces guardados para este viaje.</p>';
+        return;
+      }
+
+      // Agrupamos los enlaces por tipo (vuelo, alojamiento, actividad, otro)
+      // para no mostrarlos todos mezclados sin orden.
+      const grupos = { vuelo: [], alojamiento: [], actividad: [], otro: [] };
+      resultado.data.forEach(function (e) {
+        (grupos[e.tipo] || grupos.otro).push(e);
+      });
+
+      Object.keys(grupos).forEach(function (tipo) {
+        if (grupos[tipo].length === 0) return;
+
+        const encabezado = document.createElement("h2");
+        encabezado.classList.add("grupo-tipo");
+        encabezado.textContent = etiquetasTipo[tipo];
+        contenedor.appendChild(encabezado);
+
+        grupos[tipo].forEach(function (e) {
+          const tarjeta = document.createElement("div");
+          tarjeta.classList.add("tarjeta-enlace");
+          tarjeta.innerHTML =
+            '<div class="info">' +
+            '<div class="titulo">' + e.titulo + '</div>' +
+            '<div class="quien">' + (e.anadido_por ? "Añadido por " + e.anadido_por : "") + '</div>' +
+            '</div>' +
+            '<a class="abrir" href="' + e.url + '" target="_blank" rel="noopener">Abrir</a>';
+          contenedor.appendChild(tarjeta);
+        });
+      });
+    }
+
+    document.getElementById("anadir-enlace").addEventListener("click", async function () {
+      const tipo = document.getElementById("tipo-enlace").value;
+      const titulo = document.getElementById("titulo-enlace").value.trim();
+      const url = document.getElementById("url-enlace").value.trim();
+      const anadidoPor = document.getElementById("anadido-por").value.trim();
+      const mensaje = document.getElementById("mensaje-estado");
+
+      if (titulo === "" || url === "") {
+        alert("Escribe al menos el título y el enlace");
+        return;
+      }
+
+      mensaje.textContent = "Guardando...";
+
+      const resultado = await cliente.from("enlaces_viaje").insert({
+        viaje_id: viajeId,
+        tipo: tipo,
+        titulo: titulo,
+        url: url,
+        anadido_por: anadidoPor === "" ? null : anadidoPor
+      });
+
+      if (resultado.error) {
+        console.error("Supabase error:", resultado.error.message);
+        mensaje.textContent = "Error al guardar: " + resultado.error.message;
+        return;
+      }
+
+      mensaje.textContent = "Enlace añadido.";
+      document.getElementById("titulo-enlace").value = "";
+      document.getElementById("url-enlace").value = "";
+
+      cargarEnlaces(); // recargamos la lista para que aparezca el nuevo enlace
+    });
+  </script>
+</body>
+</html>
