@@ -132,7 +132,7 @@
   <div class="caja-anadir" id="caja-ia">
     <h2 class="grupo-tipo" style="margin-top:0;">✨ Sugerencias de IA para este viaje</h2>
     <p style="font-size:13px; color: var(--color-texto-suave); margin: 0 0 10px;">
-      Vuelos, alojamiento y actividades orientativos según destino y fechas. No son precios en tiempo real.
+      Vuelos, alojamiento, qué hacer y qué ver — ajustado a los días de viaje. Orientativo, no en tiempo real.
     </p>
     <input type="text" id="origen-ia" placeholder="Tu ciudad de origen (ej: Cracovia)">
     <button id="pedir-sugerencias">Pedir sugerencias del viaje</button>
@@ -204,8 +204,18 @@
         return;
       }
 
-      mensajeIA.textContent = "Pensando en opciones de vuelo...";
+      mensajeIA.textContent = "Pensando en opciones para el viaje...";
       resultadoIA.innerHTML = "";
+
+      // Calculamos cuántos días dura el viaje, para pedirle a la IA un número
+      // de sugerencias proporcional (un finde no necesita las mismas que una semana).
+      let dias = null;
+      if (datosViaje.fecha_inicio && datosViaje.fecha_fin) {
+        const inicio = new Date(datosViaje.fecha_inicio);
+        const fin = new Date(datosViaje.fecha_fin);
+        const milisegundosPorDia = 1000 * 60 * 60 * 24;
+        dias = Math.max(1, Math.round((fin - inicio) / milisegundosPorDia) + 1);
+      }
 
       try {
         const respuesta = await fetch(urlFuncionIA, {
@@ -221,7 +231,8 @@
             destino: datosViaje.destino || "destino sin especificar",
             origen: origen,
             fechaInicio: datosViaje.fecha_inicio,
-            fechaFin: datosViaje.fecha_fin
+            fechaFin: datosViaje.fecha_fin,
+            dias: dias
           })
         });
 
@@ -268,13 +279,19 @@
             '<div class="consejo">' + a.consejo + '</div>';
         });
 
-        pintarCategoria("🎟️ Actividades", datos.actividades, function (act) {
+        pintarCategoria("🗺️ Qué hacer", datos.quehacer, function (act) {
           return '<div class="titulo-sugerencia">' + act.nombre + '</div>' +
             '<div class="detalle-sugerencia">' + act.descripcion + '</div>' +
             '<div class="consejo">' + act.consejo + '</div>';
         });
 
-        if (!datos.vuelos && !datos.alojamiento && !datos.actividades) {
+        pintarCategoria("👀 Qué ver", datos.quever, function (v) {
+          return '<div class="titulo-sugerencia">' + v.nombre + '</div>' +
+            '<div class="detalle-sugerencia">' + v.descripcion + '</div>' +
+            '<div class="consejo">' + v.consejo + '</div>';
+        });
+
+        if (!datos.vuelos && !datos.alojamiento && !datos.quehacer && !datos.quever) {
           mensajeIA.textContent = "La IA no devolvió el formato esperado. Prueba otra vez.";
           console.error("Respuesta inesperada:", datos);
         }
