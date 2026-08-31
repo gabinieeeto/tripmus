@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tripmus - Recomendaciones</title>
+  <style>
+    :root {
+      --color-fondo: #faf9f6;
+      --color-texto: #262523;
+      --color-texto-suave: #7a766f;
+      --color-borde: #e5e1d8;
+      --color-marca: #d85a30;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background-color: var(--color-fondo);
+      color: var(--color-texto);
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+    }
+
+    .nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--color-borde);
+      padding-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .nav a {
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-texto-suave);
+      padding: 6px 12px;
+      border-radius: 20px;
+    }
+
+    .nav a.activo {
+      background-color: var(--color-marca);
+      color: white;
+    }
+
+    h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+
+    p.subtitulo {
+      color: var(--color-texto-suave);
+      font-size: 14px;
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
+
+    .fila-inputs {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .fila-inputs input {
+      padding: 10px 12px;
+      border: 1px solid var(--color-borde);
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+      flex: 1;
+      min-width: 140px;
+    }
+
+    #generar {
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background-color: var(--color-marca);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+
+    .aviso-simulado {
+      font-size: 12px;
+      color: var(--color-texto-suave);
+      background: white;
+      border: 1px dashed var(--color-borde);
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-bottom: 20px;
+    }
+
+    .tarjeta-destino {
+      background: white;
+      border: 1px solid var(--color-borde);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+
+    .tarjeta-destino .cabecera {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 6px;
+    }
+
+    .tarjeta-destino .nombre {
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    .tarjeta-destino .precio {
+      font-size: 12px;
+      color: var(--color-texto-suave);
+    }
+
+    .tarjeta-destino .descripcion {
+      font-size: 13px;
+      color: var(--color-texto-suave);
+      margin: 0;
+    }
+
+    #resultado {
+      display: none;
+    }
+
+    #cargando {
+      display: none;
+      font-size: 13px;
+      color: var(--color-texto-suave);
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="nav">
+    <a href="index.html">Mi disponibilidad</a>
+    <a href="tripmus-grupo.html">Ver grupo</a>
+    <a href="tripmus-presupuesto.html">Presupuesto</a>
+    <a href="tripmus-recomendaciones.html" class="activo">Recomendaciones</a>
+  </div>
+
+  <h1>Recomendaciones</h1>
+  <p class="subtitulo">Dinos el hueco de fechas y el presupuesto aproximado, y te sugerimos destinos.</p>
+
+  <div class="fila-inputs">
+    <select id="temporada">
+      <option value="invierno">Invierno (dic-feb)</option>
+      <option value="primavera">Primavera (mar-may)</option>
+      <option value="verano">Verano (jun-ago)</option>
+      <option value="otono">Otoño (sep-nov)</option>
+    </select>
+    <input type="text" id="presupuesto-max" placeholder="Presupuesto máx (€), opcional">
+  </div>
+
+  <button id="generar">Buscar recomendaciones</button>
+
+  <p class="aviso-simulado">
+    Estas recomendaciones vienen de la guía que vosotros mismos vais construyendo con vuestra experiencia real.
+    <a href="tripmus-anadir-destino.html">+ Añadir un destino nuevo</a>
+  </p>
+
+  <p id="cargando">Pensando en destinos...</p>
+
+  <div id="resultado"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const supabaseUrl = "https://jhowamfmrrhxphhijgsn.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impob3dhbWZtcnJoeHBoaGlqZ3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzI3ODcsImV4cCI6MjEwMzc0ODc4N30.EwJi9JrniY3SpQPSl-JtnnwSLxCzMIpMQHLN4P7PUhE";
+    const cliente = supabase.createClient(supabaseUrl, supabaseKey);
+
+    // ---------- FUNCIÓN QUE TRAE LAS RECOMENDACIONES ----------
+    // Ya no es simulada: consulta de verdad la tabla "destinos" que vosotros
+    // vais rellenando a mano en tripmus-anadir-destino.html.
+    async function generarRecomendaciones(temporada, presupuestoMax) {
+      let consulta = cliente
+        .from("destinos")
+        .select("nombre, precio_desde, descripcion, transporte")
+        .eq("temporada", temporada)
+        .order("precio_desde", { ascending: true });
+
+      // Si se ha indicado un presupuesto máximo, filtramos también por precio.
+      // "lte" significa "less than or equal" (menor o igual que).
+      if (presupuestoMax !== "" && !isNaN(Number(presupuestoMax))) {
+        consulta = consulta.lte("precio_desde", Number(presupuestoMax));
+      }
+
+      const resultado = await consulta;
+
+      if (resultado.error) {
+        console.error("Supabase error:", resultado.error.message);
+        return [];
+      }
+
+      return resultado.data;
+    }
+
+    document.getElementById("generar").addEventListener("click", async function () {
+      const temporada = document.getElementById("temporada").value;
+      const presupuestoMax = document.getElementById("presupuesto-max").value.trim();
+
+      document.getElementById("resultado").style.display = "none";
+      document.getElementById("cargando").style.display = "block";
+
+      const destinos = await generarRecomendaciones(temporada, presupuestoMax);
+
+      document.getElementById("cargando").style.display = "none";
+      const contenedor = document.getElementById("resultado");
+      contenedor.style.display = "block";
+      contenedor.innerHTML = "";
+
+      if (destinos.length === 0) {
+        contenedor.innerHTML = '<p style="font-size:14px; color: var(--color-texto-suave);">Todavía no hay destinos guardados para esta temporada. <a href="tripmus-anadir-destino.html">Añade el primero</a>.</p>';
+        return;
+      }
+
+      destinos.forEach(function (d) {
+        const tarjeta = document.createElement("div");
+        tarjeta.classList.add("tarjeta-destino");
+        tarjeta.innerHTML =
+          '<div class="cabecera">' +
+          '<span class="nombre">' + d.nombre + '</span>' +
+          '<span class="precio">' + (d.precio_desde ? "desde " + d.precio_desde + "€" : "") + '</span>' +
+          '</div>' +
+          '<p class="descripcion">' + d.descripcion + '</p>' +
+          (d.transporte ? '<p class="descripcion" style="margin-top:4px;"><strong>Cómo llegar:</strong> ' + d.transporte + '</p>' : '');
+        contenedor.appendChild(tarjeta);
+      });
+    });
+  </script>
+</body>
+</html>

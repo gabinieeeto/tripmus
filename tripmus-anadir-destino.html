@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tripmus - Añadir destino</title>
+  <style>
+    :root {
+      --color-fondo: #faf9f6;
+      --color-texto: #262523;
+      --color-texto-suave: #7a766f;
+      --color-borde: #e5e1d8;
+      --color-marca: #d85a30;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background-color: var(--color-fondo);
+      color: var(--color-texto);
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+    }
+    a.volver {
+      display: inline-block;
+      font-size: 13px;
+      color: var(--color-texto-suave);
+      text-decoration: none;
+      margin-bottom: 16px;
+    }
+    h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+    p.subtitulo {
+      color: var(--color-texto-suave);
+      font-size: 14px;
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      margin-top: 16px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--color-borde);
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+      font-family: inherit;
+    }
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+    #guardar {
+      margin-top: 24px;
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background-color: var(--color-marca);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      width: 100%;
+    }
+    #mensaje-estado {
+      font-size: 13px;
+      color: var(--color-texto-suave);
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <a class="volver" href="tripmus-recomendaciones.html">&larr; Volver a recomendaciones</a>
+
+  <h1>Añadir un destino</h1>
+  <p class="subtitulo">Basado en vuestra experiencia real. Esto alimenta las recomendaciones de todo el grupo.</p>
+
+  <label for="nombre">Destino</label>
+  <input type="text" id="nombre" placeholder="Ej: Rovaniemi, Finlandia">
+
+  <label for="temporada">Temporada en la que recomendarlo</label>
+  <select id="temporada">
+    <option value="invierno">Invierno (dic-feb)</option>
+    <option value="primavera">Primavera (mar-may)</option>
+    <option value="verano">Verano (jun-ago)</option>
+    <option value="otono">Otoño (sep-nov)</option>
+  </select>
+
+  <label for="precio">Precio orientativo desde (€)</label>
+  <input type="number" id="precio" placeholder="Ej: 145">
+
+  <label for="transporte">Cómo se suele llegar</label>
+  <input type="text" id="transporte" placeholder="Ej: Vuelo directo desde Cracovia, o bus">
+
+  <label for="descripcion">Por qué merece la pena (vuestra experiencia)</label>
+  <textarea id="descripcion" placeholder="Ej: Nieve y auroras boreales en temporada alta, ambiente muy erasmus..."></textarea>
+
+  <button id="guardar">Guardar destino</button>
+  <p id="mensaje-estado"></p>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const supabaseUrl = "https://jhowamfmrrhxphhijgsn.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impob3dhbWZtcnJoeHBoaGlqZ3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzI3ODcsImV4cCI6MjEwMzc0ODc4N30.EwJi9JrniY3SpQPSl-JtnnwSLxCzMIpMQHLN4P7PUhE";
+    const cliente = supabase.createClient(supabaseUrl, supabaseKey);
+
+    document.getElementById("guardar").addEventListener("click", async function () {
+      const nombre = document.getElementById("nombre").value.trim();
+      const temporada = document.getElementById("temporada").value;
+      const precio = document.getElementById("precio").value;
+      const transporte = document.getElementById("transporte").value.trim();
+      const descripcion = document.getElementById("descripcion").value.trim();
+
+      const mensaje = document.getElementById("mensaje-estado");
+
+      if (nombre === "" || descripcion === "") {
+        alert("Rellena al menos el nombre y la descripción");
+        return;
+      }
+
+      mensaje.textContent = "Guardando...";
+
+      const resultado = await cliente.from("destinos").insert({
+        nombre: nombre,
+        temporada: temporada,
+        precio_desde: precio === "" ? null : Number(precio),
+        transporte: transporte === "" ? null : transporte,
+        descripcion: descripcion
+      });
+
+      if (resultado.error) {
+        console.error("Supabase error:", resultado.error.message);
+        mensaje.textContent = "Error al guardar: " + resultado.error.message;
+        return;
+      }
+
+      mensaje.textContent = "Destino guardado. Ya aparecerá en las recomendaciones de esa temporada.";
+      document.getElementById("nombre").value = "";
+      document.getElementById("precio").value = "";
+      document.getElementById("transporte").value = "";
+      document.getElementById("descripcion").value = "";
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tripmus - Presupuesto</title>
+  <style>
+    :root {
+      --color-fondo: #faf9f6;
+      --color-texto: #262523;
+      --color-texto-suave: #7a766f;
+      --color-borde: #e5e1d8;
+      --color-marca: #d85a30;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background-color: var(--color-fondo);
+      color: var(--color-texto);
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+    }
+
+    .nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--color-borde);
+      padding-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .nav a {
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-texto-suave);
+      padding: 6px 12px;
+      border-radius: 20px;
+    }
+
+    .nav a.activo {
+      background-color: var(--color-marca);
+      color: white;
+    }
+
+    h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+
+    .etiqueta-opcional {
+      display: inline-block;
+      font-size: 11px;
+      color: var(--color-texto-suave);
+      background: white;
+      border: 1px solid var(--color-borde);
+      padding: 2px 10px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+    }
+
+    p.subtitulo {
+      color: var(--color-texto-suave);
+      font-size: 14px;
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      padding: 10px 12px;
+      width: 100%;
+      max-width: 280px;
+      margin-bottom: 12px;
+      display: block;
+      border: 1px solid var(--color-borde);
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+    }
+
+    .caja-slider {
+      background: white;
+      border: 1px solid var(--color-borde);
+      border-radius: 10px;
+      padding: 20px 16px;
+      margin-bottom: 16px;
+    }
+
+    .fila-slider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .fila-slider input[type="range"] {
+      flex: 1;
+    }
+
+    .fila-slider .valor {
+      font-size: 16px;
+      font-weight: 600;
+      min-width: 56px;
+      text-align: right;
+    }
+
+    button {
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 8px;
+      width: 100%;
+      margin-bottom: 10px;
+      border: none;
+    }
+
+    #guardar {
+      background-color: var(--color-marca);
+      color: white;
+    }
+
+    #omitir {
+      background: white;
+      color: var(--color-texto-suave);
+      border: 1px solid var(--color-borde);
+    }
+
+    #mensaje-estado {
+      font-size: 13px;
+      color: var(--color-texto-suave);
+      margin: 10px 0 24px;
+    }
+
+    .resumen-grupo {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .tarjeta-metrica {
+      background: var(--color-fondo);
+      border-radius: 10px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .tarjeta-metrica .etiqueta {
+      font-size: 12px;
+      color: var(--color-texto-suave);
+      margin-bottom: 4px;
+    }
+
+    .tarjeta-metrica .numero {
+      font-size: 22px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="nav">
+    <a href="index.html">Mi disponibilidad</a>
+    <a href="tripmus-grupo.html">Ver grupo</a>
+    <a href="tripmus-presupuesto.html" class="activo">Presupuesto</a>
+    <a href="tripmus-recomendaciones.html">Recomendaciones</a>
+  </div>
+
+  <span class="etiqueta-opcional">Opcional</span>
+  <h1>Presupuesto</h1>
+  <p class="subtitulo">Si quieres afinar las recomendaciones, indica tu máximo. Puedes saltarte este paso sin problema.</p>
+
+  <input type="text" id="nombre" placeholder="Tu nombre">
+  <input type="text" id="grupo" placeholder="Código de grupo" value="demo">
+
+  <div class="caja-slider">
+    <div class="fila-slider">
+      <input type="range" id="slider-presupuesto" min="50" max="400" step="10" value="180">
+      <span class="valor" id="valor-presupuesto">180€</span>
+    </div>
+  </div>
+
+  <button id="guardar">Guardar presupuesto</button>
+  <button id="omitir">Omitir este paso</button>
+
+  <p id="mensaje-estado"></p>
+
+  <h2 style="font-size: 15px; margin-bottom: 10px;">Presupuesto del grupo</h2>
+  <div class="resumen-grupo" id="resumen-grupo">
+    <div class="tarjeta-metrica">
+      <div class="etiqueta">Media</div>
+      <div class="numero" id="media-grupo">—</div>
+    </div>
+    <div class="tarjeta-metrica">
+      <div class="etiqueta">Rango</div>
+      <div class="numero" id="rango-grupo">—</div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const supabaseUrl = "https://jhowamfmrrhxphhijgsn.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impob3dhbWZtcnJoeHBoaGlqZ3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzI3ODcsImV4cCI6MjEwMzc0ODc4N30.EwJi9JrniY3SpQPSl-JtnnwSLxCzMIpMQHLN4P7PUhE";
+    const cliente = supabase.createClient(supabaseUrl, supabaseKey);
+
+    const mensajeEstado = document.getElementById("mensaje-estado");
+    const slider = document.getElementById("slider-presupuesto");
+    const valorPresupuesto = document.getElementById("valor-presupuesto");
+
+    // Cada vez que muevas el slider, actualizamos el número que se ve al lado.
+    // El evento "input" se dispara mientras arrastras, no solo al soltar.
+    slider.addEventListener("input", function () {
+      valorPresupuesto.textContent = slider.value + "€";
+    });
+
+    document.getElementById("guardar").addEventListener("click", async function () {
+      const nombre = document.getElementById("nombre").value.trim();
+      const grupo = document.getElementById("grupo").value.trim();
+
+      if (nombre === "" || grupo === "") {
+        alert("Escribe tu nombre y el código de grupo");
+        return;
+      }
+
+      mensajeEstado.textContent = "Guardando...";
+
+      // Fíjate: aquí NO incluimos "disponibilidad" en el objeto.
+      // Si tu fila ya existe (porque guardaste tu horario antes), Supabase
+      // solo actualiza las columnas que le pasamos, y deja el resto tal cual.
+      const resultado = await cliente
+        .from("personas")
+        .upsert(
+          { nombre: nombre, grupo: grupo, presupuesto: Number(slider.value) },
+          { onConflict: "nombre,grupo" }
+        );
+
+      if (resultado.error) {
+        console.error("Supabase error:", resultado.error.message);
+        mensajeEstado.textContent = "Error al guardar: " + resultado.error.message;
+        return;
+      }
+
+      mensajeEstado.textContent = "Presupuesto guardado.";
+      cargarResumenGrupo(grupo);
+    });
+
+    document.getElementById("omitir").addEventListener("click", function () {
+      mensajeEstado.textContent = "Sin problema, puedes rellenarlo cuando quieras desde aquí.";
+    });
+
+    // ---------- RESUMEN DEL GRUPO ----------
+    async function cargarResumenGrupo(grupo) {
+      if (!grupo) return;
+
+      const resultado = await cliente
+        .from("personas")
+        .select("presupuesto")
+        .eq("grupo", grupo)
+        .not("presupuesto", "is", null); // solo quienes SÍ han puesto presupuesto
+
+      if (resultado.error || !resultado.data || resultado.data.length === 0) {
+        document.getElementById("media-grupo").textContent = "—";
+        document.getElementById("rango-grupo").textContent = "—";
+        return;
+      }
+
+      const valores = resultado.data.map(function (p) { return p.presupuesto; });
+      const media = Math.round(valores.reduce(function (a, b) { return a + b; }, 0) / valores.length);
+      const minimo = Math.min(...valores);
+      const maximo = Math.max(...valores);
+
+      document.getElementById("media-grupo").textContent = media + "€";
+      document.getElementById("rango-grupo").textContent = minimo + "–" + maximo + "€";
+    }
+
+    // Al cargar la página, si ya hay un código de grupo puesto (el "demo" por defecto),
+    // mostramos ya el resumen existente sin esperar a que guardes nada.
+    cargarResumenGrupo(document.getElementById("grupo").value.trim());
+    document.getElementById("grupo").addEventListener("blur", function () {
+      cargarResumenGrupo(this.value.trim());
+    });
+  </script>
+</body>
+</html>

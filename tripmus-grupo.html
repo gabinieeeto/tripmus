@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tripmus - Disponibilidad del grupo</title>
+  <style>
+    :root {
+      --color-fondo: #faf9f6;
+      --color-texto: #262523;
+      --color-texto-suave: #7a766f;
+      --color-borde: #e5e1d8;
+      --color-marca: #d85a30;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background-color: var(--color-fondo);
+      color: var(--color-texto);
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+    }
+
+    h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+
+    p.subtitulo {
+      color: var(--color-texto-suave);
+      font-size: 14px;
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
+
+    #grupo {
+      padding: 10px 12px;
+      width: 100%;
+      max-width: 280px;
+      margin-bottom: 12px;
+      display: block;
+      border: 1px solid var(--color-borde);
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+    }
+
+    #ver {
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background-color: var(--color-marca);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    #resumen {
+      font-size: 13px;
+      color: var(--color-texto-suave);
+      margin-bottom: 16px;
+    }
+
+    .nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--color-borde);
+      padding-bottom: 12px;
+    }
+
+    .nav a {
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-texto-suave);
+      padding: 6px 12px;
+      border-radius: 20px;
+    }
+
+    .nav a.activo {
+      background-color: var(--color-marca);
+      color: white;
+    }
+
+    .tabla-scroll {
+      overflow-x: auto;
+      border: 1px solid var(--color-borde);
+      border-radius: 10px;
+      background: white;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 560px;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--color-borde);
+      border-right: 1px solid var(--color-borde);
+      text-align: center;
+      padding: 6px 3px;
+      font-size: 11px;
+    }
+
+    th:last-child, td:last-child { border-right: none; }
+
+    th {
+      background-color: var(--color-fondo);
+      color: var(--color-texto-suave);
+      font-weight: 600;
+    }
+
+    td.hora {
+      background-color: var(--color-fondo);
+      font-weight: 600;
+      color: var(--color-texto-suave);
+      width: 56px;
+    }
+
+    td.celda-grupo {
+      cursor: pointer;
+      height: 28px;
+      font-weight: 600;
+      color: white;
+    }
+
+    #mejores-huecos {
+      margin-top: 20px;
+      padding: 14px 16px;
+      background: #eef5ea;
+      border-radius: 10px;
+      font-size: 13px;
+    }
+
+    #mejores-huecos h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+    }
+
+    #detalle-celda {
+      margin-top: 14px;
+      padding: 12px 14px;
+      background: white;
+      border: 1px solid var(--color-borde);
+      border-radius: 8px;
+      font-size: 13px;
+      min-height: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="nav">
+    <a href="index.html">Mi disponibilidad</a>
+    <a href="tripmus-grupo.html" class="activo">Ver grupo</a>
+    <a href="tripmus-presupuesto.html">Presupuesto</a>
+    <a href="tripmus-recomendaciones.html">Recomendaciones</a>
+  </div>
+
+  <h1>Disponibilidad del grupo</h1>
+  <p class="subtitulo">Cuanto más verde, más gente libre en esa franja. Toca una celda para ver quién.</p>
+
+  <input type="text" id="grupo" placeholder="Código de grupo" value="demo">
+  <button id="ver">Ver disponibilidad</button>
+
+  <p id="resumen"></p>
+
+  <div class="tabla-scroll">
+    <table id="tabla-grupo">
+      <thead>
+        <tr>
+          <th>Hora</th>
+          <th>Lunes</th>
+          <th>Martes</th>
+          <th>Miércoles</th>
+          <th>Jueves</th>
+          <th>Viernes</th>
+          <th>Sábado</th>
+          <th>Domingo</th>
+        </tr>
+      </thead>
+      <tbody id="cuerpo-tabla-grupo"></tbody>
+    </table>
+  </div>
+
+  <div id="detalle-celda"></div>
+
+  <div id="mejores-huecos" style="display: none;">
+    <h3>Mejores huecos</h3>
+    <div id="lista-mejores-huecos"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const supabaseUrl = "https://jhowamfmrrhxphhijgsn.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impob3dhbWZtcnJoeHBoaGlqZ3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzI3ODcsImV4cCI6MjEwMzc0ODc4N30.EwJi9JrniY3SpQPSl-JtnnwSLxCzMIpMQHLN4P7PUhE";
+    const cliente = supabase.createClient(supabaseUrl, supabaseKey);
+
+    const horas = [
+      "8:00", "9:00", "10:00", "11:00", "12:00", "13:00",
+      "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"
+    ];
+    const dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+    // Aquí guardaremos la lista de personas que trae Supabase,
+    // cada una con su nombre y su objeto de disponibilidad.
+    let personasDelGrupo = [];
+
+    async function verDisponibilidadDelGrupo() {
+      const grupo = document.getElementById("grupo").value.trim();
+      if (grupo === "") {
+        alert("Escribe un código de grupo");
+        return;
+      }
+
+      document.getElementById("resumen").textContent = "Cargando...";
+
+      // A diferencia de la Pantalla 1 (que pedía UNA fila con .maybeSingle()),
+      // aquí queremos TODAS las filas de ese grupo, así que no usamos maybeSingle.
+      const resultado = await cliente
+        .from("personas")
+        .select("nombre, disponibilidad")
+        .eq("grupo", grupo);
+
+      if (resultado.error) {
+        console.error("Supabase error:", resultado.error.message, "| detalles:", resultado.error.details, "| código:", resultado.error.code);
+        document.getElementById("resumen").textContent = "Error al cargar el grupo.";
+        return;
+      }
+
+      personasDelGrupo = resultado.data;
+
+      if (personasDelGrupo.length === 0) {
+        document.getElementById("resumen").textContent = "Todavía nadie ha guardado su disponibilidad en este grupo.";
+        document.getElementById("cuerpo-tabla-grupo").innerHTML = "";
+        return;
+      }
+
+      document.getElementById("resumen").textContent =
+        personasDelGrupo.length + " persona(s) en este grupo: " +
+        personasDelGrupo.map(function (p) { return p.nombre; }).join(", ");
+
+      renderizarMapaDeCalor();
+      renderizarMejoresHuecos();
+    }
+
+    // Cuenta cuántas personas están LIBRES (no ocupadas) en un día+hora concreto
+    function contarLibresEn(dia, hora) {
+      let libres = 0;
+      personasDelGrupo.forEach(function (persona) {
+        const clave = dia + "-" + hora;
+        const ocupado = persona.disponibilidad && persona.disponibilidad[clave] === true;
+        if (!ocupado) libres++;
+      });
+      return libres;
+    }
+
+    // Convierte una proporción (0 a 1) en un color verde más o menos intenso.
+    // 0 personas libres = casi blanco, todas libres = verde fuerte.
+    function colorSegunProporcion(proporcion) {
+      // Interpolamos entre un verde claro y uno oscuro según la proporción
+      const clarofinal = { r: 240, g: 240, b: 235 };
+      const verdeFuerte = { r: 99, g: 153, b: 34 };
+      const r = Math.round(clarofinal.r + (verdeFuerte.r - clarofinal.r) * proporcion);
+      const g = Math.round(clarofinal.g + (verdeFuerte.g - clarofinal.g) * proporcion);
+      const b = Math.round(clarofinal.b + (verdeFuerte.b - clarofinal.b) * proporcion);
+      return "rgb(" + r + "," + g + "," + b + ")";
+    }
+
+    function renderizarMapaDeCalor() {
+      const cuerpo = document.getElementById("cuerpo-tabla-grupo");
+      cuerpo.innerHTML = "";
+      const total = personasDelGrupo.length;
+
+      horas.forEach(function (hora) {
+        const fila = document.createElement("tr");
+
+        const celdaHora = document.createElement("td");
+        celdaHora.textContent = hora;
+        celdaHora.classList.add("hora");
+        fila.appendChild(celdaHora);
+
+        dias.forEach(function (nombreDia, dia) {
+          const libres = contarLibresEn(dia, hora);
+          const proporcion = total > 0 ? libres / total : 0;
+
+          const celda = document.createElement("td");
+          celda.classList.add("celda-grupo");
+          celda.style.backgroundColor = colorSegunProporcion(proporcion);
+          celda.textContent = libres + "/" + total;
+
+          celda.addEventListener("click", function () {
+            mostrarDetalleCelda(dia, hora, nombreDia);
+          });
+
+          fila.appendChild(celda);
+        });
+
+        cuerpo.appendChild(fila);
+      });
+    }
+
+    function mostrarDetalleCelda(dia, hora, nombreDia) {
+      const libres = [];
+      const ocupados = [];
+
+      personasDelGrupo.forEach(function (persona) {
+        const clave = dia + "-" + hora;
+        const estaOcupado = persona.disponibilidad && persona.disponibilidad[clave] === true;
+        if (estaOcupado) {
+          ocupados.push(persona.nombre);
+        } else {
+          libres.push(persona.nombre);
+        }
+      });
+
+      const contenedor = document.getElementById("detalle-celda");
+      contenedor.innerHTML =
+        "<strong>" + nombreDia + " " + hora + "</strong><br>" +
+        "Libres: " + (libres.length > 0 ? libres.join(", ") : "nadie") + "<br>" +
+        "Ocupados: " + (ocupados.length > 0 ? ocupados.join(", ") : "nadie");
+    }
+
+    // Recorre todas las franjas y calcula cuáles tienen más gente libre en total
+    function renderizarMejoresHuecos() {
+      const total = personasDelGrupo.length;
+      const franjas = [];
+
+      dias.forEach(function (nombreDia, dia) {
+        horas.forEach(function (hora) {
+          const libres = contarLibresEn(dia, hora);
+          franjas.push({ dia: nombreDia, hora: hora, libres: libres });
+        });
+      });
+
+      // Ordenamos de más a menos gente libre, y nos quedamos con las 3 mejores
+      franjas.sort(function (a, b) { return b.libres - a.libres; });
+      const top3 = franjas.slice(0, 3);
+
+      const contenedorHuecos = document.getElementById("mejores-huecos");
+      const lista = document.getElementById("lista-mejores-huecos");
+
+      if (top3.length === 0 || top3[0].libres === 0) {
+        contenedorHuecos.style.display = "none";
+        return;
+      }
+
+      contenedorHuecos.style.display = "block";
+      lista.innerHTML = top3
+        .map(function (f) {
+          return f.dia + " a las " + f.hora + " — " + f.libres + "/" + total + " libres";
+        })
+        .join("<br>");
+    }
+
+    document.getElementById("ver").addEventListener("click", verDisponibilidadDelGrupo);
+  </script>
+</body>
+</html>

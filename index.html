@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tripmus - Mi disponibilidad</title>
+  <style>
+    /* Paleta inspirada en PimPam Tribe: tonos cálidos y neutros, minimalista.
+       Si consigues los hex exactos (clic derecho > Inspeccionar en su web),
+       solo hay que cambiar estos valores y todo el diseño se actualiza. */
+    :root {
+      --color-fondo: #faf9f6;
+      --color-texto: #262523;
+      --color-texto-suave: #7a766f;
+      --color-borde: #e5e1d8;
+      --color-marca: #d85a30;
+      --color-ocupado: #e8a99b;
+      --color-libre-hover: #f0efe9;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background-color: var(--color-fondo);
+      color: var(--color-texto);
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    p.subtitulo {
+      color: var(--color-texto-suave);
+      font-size: 14px;
+      margin-top: 0;
+      margin-bottom: 20px;
+    }
+
+    #nombre, #grupo {
+      padding: 10px 12px;
+      width: 100%;
+      max-width: 280px;
+      margin-bottom: 20px;
+      display: block;
+      border: 1px solid var(--color-borde);
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+    }
+
+    #nombre:focus {
+      outline: none;
+      border-color: var(--color-marca);
+    }
+
+    /* ---------- BARRA DE NAVEGACIÓN ---------- */
+    .nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--color-borde);
+      padding-bottom: 12px;
+    }
+
+    .nav a {
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-texto-suave);
+      padding: 6px 12px;
+      border-radius: 20px;
+    }
+
+    .nav a.activo {
+      background-color: var(--color-marca);
+      color: white;
+    }
+
+    /* ---------- VISTA DE ESCRITORIO (tabla completa) ---------- */
+    .vista-escritorio {
+      display: block;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      border: 1px solid var(--color-borde);
+      border-radius: 10px;
+      overflow: hidden;
+      background: white;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--color-borde);
+      border-right: 1px solid var(--color-borde);
+      text-align: center;
+      padding: 8px 4px;
+      font-size: 12px;
+    }
+
+    th:last-child, td:last-child {
+      border-right: none;
+    }
+
+    th {
+      background-color: var(--color-fondo);
+      color: var(--color-texto-suave);
+      font-weight: 600;
+    }
+
+    td.hora {
+      background-color: var(--color-fondo);
+      font-weight: 600;
+      color: var(--color-texto-suave);
+      width: 56px;
+      font-size: 11px;
+    }
+
+    td.celda {
+      cursor: pointer;
+      height: 30px;
+      transition: background-color 0.1s ease;
+    }
+
+    td.celda:hover {
+      background-color: var(--color-libre-hover);
+    }
+
+    td.celda.ocupado {
+      background-color: var(--color-ocupado);
+    }
+
+    /* ---------- VISTA MÓVIL (pestañas de día + lista vertical) ---------- */
+    .vista-movil {
+      display: none; /* oculta por defecto; la mostramos en la media query de abajo */
+    }
+
+    .pestanas-dias {
+      display: flex;
+      overflow-x: auto;
+      gap: 6px;
+      margin-bottom: 12px;
+      padding-bottom: 4px;
+    }
+
+    .pestana-dia {
+      flex: 0 0 auto;
+      padding: 8px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--color-borde);
+      background: white;
+      color: var(--color-texto-suave);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .pestana-dia.activa {
+      background-color: var(--color-marca);
+      border-color: var(--color-marca);
+      color: white;
+    }
+
+    .lista-horas {
+      background: white;
+      border: 1px solid var(--color-borde);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .fila-hora {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--color-borde);
+      cursor: pointer;
+    }
+
+    .fila-hora:last-child {
+      border-bottom: none;
+    }
+
+    .fila-hora .etiqueta-hora {
+      font-size: 14px;
+      color: var(--color-texto);
+    }
+
+    .fila-hora .estado {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-texto-suave);
+    }
+
+    .fila-hora.ocupado {
+      background-color: var(--color-ocupado);
+    }
+
+    .fila-hora.ocupado .estado {
+      color: white;
+    }
+
+    #guardar {
+      margin-top: 20px;
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      background-color: var(--color-marca);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      width: 100%;
+    }
+
+    #guardar:active {
+      opacity: 0.85;
+    }
+
+    /* A partir de aquí (768px o menos) cambiamos de vista:
+       escondemos la tabla y mostramos las pestañas + lista. */
+    @media (max-width: 768px) {
+      .vista-escritorio {
+        display: none;
+      }
+      .vista-movil {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="nav">
+    <a href="index.html" class="activo">Mi disponibilidad</a>
+    <a href="tripmus-grupo.html">Ver grupo</a>
+    <a href="tripmus-presupuesto.html">Presupuesto</a>
+    <a href="tripmus-recomendaciones.html">Recomendaciones</a>
+  </div>
+
+  <h1>Mi horario semanal</h1>
+  <p class="subtitulo">Marca las horas donde SUELES tener clase u ocupación fija.</p>
+
+  <input type="text" id="nombre" placeholder="Tu nombre">
+  <input type="text" id="grupo" placeholder="Código de grupo (ej: erasmus-cracovia)" value="demo">
+  <p style="font-size: 12px; color: var(--color-texto-suave); margin-top: -14px; margin-bottom: 20px;">Todo el que use el mismo código verá la disponibilidad conjunta.</p>
+
+  <!-- VISTA DE ESCRITORIO -->
+  <div class="vista-escritorio">
+    <table id="horario">
+      <thead>
+        <tr>
+          <th>Hora</th>
+          <th>Lunes</th>
+          <th>Martes</th>
+          <th>Miércoles</th>
+          <th>Jueves</th>
+          <th>Viernes</th>
+          <th>Sábado</th>
+          <th>Domingo</th>
+        </tr>
+      </thead>
+      <tbody id="cuerpo-tabla"></tbody>
+    </table>
+  </div>
+
+  <!-- VISTA MÓVIL -->
+  <div class="vista-movil">
+    <div class="pestanas-dias" id="pestanas-dias"></div>
+    <div class="lista-horas" id="lista-horas"></div>
+  </div>
+
+  <button id="guardar">Guardar disponibilidad</button>
+  <p id="mensaje-estado" style="font-size: 13px; color: var(--color-texto-suave); margin-top: 10px;"></p>
+
+  <!-- Librería oficial de Supabase, cargada desde un CDN (un servidor externo
+       que sirve código JavaScript ya hecho, para no tener que escribirlo nosotros).
+       Esto nos da acceso a la función supabase.createClient(...) de más abajo. -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    // ---------- CONEXIÓN CON SUPABASE ----------
+    // El Project URL va SIN el "/rest/v1/" al final, solo la raíz.
+    const supabaseUrl = "https://jhowamfmrrhxphhijgsn.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impob3dhbWZtcnJoeHBoaGlqZ3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzI3ODcsImV4cCI6MjEwMzc0ODc4N30.EwJi9JrniY3SpQPSl-JtnnwSLxCzMIpMQHLN4P7PUhE";
+    const cliente = supabase.createClient(supabaseUrl, supabaseKey);
+
+    const horas = [
+      "8:00", "9:00", "10:00", "11:00", "12:00", "13:00",
+      "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"
+    ];
+    const dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+    // ---------- EL DATO CENTRAL ----------
+    // Esto es lo importante del cambio: en vez de que el estado "ocupado"
+    // viva solo dentro del HTML (como antes, con classList.toggle),
+    // ahora lo guardamos en un objeto de JavaScript, independiente de la vista.
+    // La clave es algo como "0-8:00" (día 0 = lunes, hora 8:00).
+    // Ambas vistas (tabla y pestañas) leen y escriben en este MISMO objeto,
+    // así que están siempre sincronizadas.
+    const estado = {};
+
+    function claveCelda(dia, hora) {
+      return dia + "-" + hora;
+    }
+
+    function estaOcupado(dia, hora) {
+      return estado[claveCelda(dia, hora)] === true;
+    }
+
+    function alternarOcupado(dia, hora) {
+      const clave = claveCelda(dia, hora);
+      estado[clave] = !estado[clave];
+      renderizarTodo(); // repintamos ambas vistas para que reflejen el cambio
+    }
+
+    // ---------- RENDER DE LA TABLA (ESCRITORIO) ----------
+    function renderizarTabla() {
+      const cuerpoTabla = document.getElementById("cuerpo-tabla");
+      cuerpoTabla.innerHTML = ""; // limpiamos antes de volver a dibujar
+
+      horas.forEach(function (hora) {
+        const fila = document.createElement("tr");
+
+        const celdaHora = document.createElement("td");
+        celdaHora.textContent = hora;
+        celdaHora.classList.add("hora");
+        fila.appendChild(celdaHora);
+
+        dias.forEach(function (nombreDia, dia) {
+          const celda = document.createElement("td");
+          celda.classList.add("celda");
+          if (estaOcupado(dia, hora)) {
+            celda.classList.add("ocupado");
+          }
+          celda.addEventListener("click", function () {
+            alternarOcupado(dia, hora);
+          });
+          fila.appendChild(celda);
+        });
+
+        cuerpoTabla.appendChild(fila);
+      });
+    }
+
+    // ---------- RENDER DE PESTAÑAS + LISTA (MÓVIL) ----------
+    let diaSeleccionado = 0; // empezamos mostrando el lunes
+
+    function renderizarPestanas() {
+      const contenedor = document.getElementById("pestanas-dias");
+      contenedor.innerHTML = "";
+
+      dias.forEach(function (nombreDia, dia) {
+        const pestana = document.createElement("div");
+        pestana.classList.add("pestana-dia");
+        pestana.textContent = nombreDia.slice(0, 3); // "Lunes" -> "Lun"
+        if (dia === diaSeleccionado) {
+          pestana.classList.add("activa");
+        }
+        pestana.addEventListener("click", function () {
+          diaSeleccionado = dia;
+          renderizarTodo();
+        });
+        contenedor.appendChild(pestana);
+      });
+    }
+
+    function renderizarListaHoras() {
+      const lista = document.getElementById("lista-horas");
+      lista.innerHTML = "";
+
+      horas.forEach(function (hora) {
+        const fila = document.createElement("div");
+        fila.classList.add("fila-hora");
+        if (estaOcupado(diaSeleccionado, hora)) {
+          fila.classList.add("ocupado");
+        }
+
+        const etiqueta = document.createElement("span");
+        etiqueta.classList.add("etiqueta-hora");
+        etiqueta.textContent = hora;
+
+        const estadoTexto = document.createElement("span");
+        estadoTexto.classList.add("estado");
+        estadoTexto.textContent = estaOcupado(diaSeleccionado, hora) ? "Ocupado" : "Libre";
+
+        fila.appendChild(etiqueta);
+        fila.appendChild(estadoTexto);
+
+        fila.addEventListener("click", function () {
+          alternarOcupado(diaSeleccionado, hora);
+        });
+
+        lista.appendChild(fila);
+      });
+    }
+
+    function renderizarTodo() {
+      renderizarTabla();
+      renderizarPestanas();
+      renderizarListaHoras();
+    }
+
+    renderizarTodo(); // primer dibujado al cargar la página
+
+    const mensajeEstado = document.getElementById("mensaje-estado");
+
+    // ---------- CARGAR DISPONIBILIDAD PREVIA ----------
+    // "async function" significa que esta función puede hacer operaciones
+    // que tardan tiempo (como pedir datos a internet) sin bloquear el resto
+    // de la página mientras espera la respuesta.
+    async function cargarDisponibilidadGuardada(nombre, grupo) {
+      mensajeEstado.textContent = "Buscando tu disponibilidad guardada...";
+
+      const resultado = await cliente
+        .from("personas")
+        .select("disponibilidad")
+        .eq("nombre", nombre)
+        .eq("grupo", grupo)
+        .maybeSingle();
+
+      if (resultado.error) {
+        console.error("Supabase error:", resultado.error.message, "| detalles:", resultado.error.details, "| código:", resultado.error.code);
+        mensajeEstado.textContent = "No se pudo comprobar tu disponibilidad guardada.";
+        return;
+      }
+
+      if (resultado.data) {
+        Object.assign(estado, resultado.data.disponibilidad);
+        renderizarTodo();
+        mensajeEstado.textContent = "Disponibilidad anterior cargada. Puedes seguir editándola.";
+      } else {
+        mensajeEstado.textContent = "";
+      }
+    }
+
+    function comprobarSiCargar() {
+      const nombre = document.getElementById("nombre").value.trim();
+      const grupo = document.getElementById("grupo").value.trim();
+      if (nombre !== "" && grupo !== "") {
+        cargarDisponibilidadGuardada(nombre, grupo);
+      }
+    }
+
+    document.getElementById("nombre").addEventListener("blur", comprobarSiCargar);
+    document.getElementById("grupo").addEventListener("blur", comprobarSiCargar);
+
+    // ---------- BOTÓN GUARDAR ----------
+    document.getElementById("guardar").addEventListener("click", async function () {
+      const nombre = document.getElementById("nombre").value.trim();
+      const grupo = document.getElementById("grupo").value.trim();
+
+      if (nombre === "" || grupo === "") {
+        alert("Escribe tu nombre y el código de grupo antes de guardar");
+        return;
+      }
+
+      mensajeEstado.textContent = "Guardando...";
+
+      const resultado = await cliente
+        .from("personas")
+        .upsert(
+          {
+            nombre: nombre,
+            grupo: grupo,
+            disponibilidad: estado,
+            actualizado_en: new Date()
+          },
+          { onConflict: "nombre,grupo" }
+        );
+
+      if (resultado.error) {
+        console.error("Supabase error:", resultado.error.message, "| detalles:", resultado.error.details, "| código:", resultado.error.code);
+        mensajeEstado.textContent = "Error al guardar: " + resultado.error.message;
+        return;
+      }
+
+      mensajeEstado.textContent = "Disponibilidad guardada correctamente.";
+    });
+  </script>
+</body>
+</html>
