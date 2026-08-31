@@ -107,12 +107,19 @@
       border: 1px solid var(--color-borde);
       border-radius: 12px;
       padding: 12px 14px;
-      margin-top: 10px;
+      margin-bottom: 8px;
     }
-    .tarjeta-sugerencia-ia .opcion { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
-    .tarjeta-sugerencia-ia .ruta { font-size: 13px; color: var(--color-texto-suave); margin-bottom: 4px; }
+    .tarjeta-sugerencia-ia .titulo-sugerencia { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+    .tarjeta-sugerencia-ia .detalle-sugerencia { font-size: 13px; color: var(--color-texto-suave); margin-bottom: 4px; }
     .tarjeta-sugerencia-ia .consejo { font-size: 12px; color: var(--color-acento-teal); font-weight: 600; }
+    h3.categoria-ia {
+      font-family: "Fredoka", sans-serif;
+      font-size: 14px;
+      margin: 18px 0 8px;
+    }
+    h3.categoria-ia:first-of-type { margin-top: 12px; }
   </style>
+
 </head>
 <body>
 
@@ -123,9 +130,12 @@
   <p class="subtitulo" id="subtitulo-viaje"></p>
 
   <div class="caja-anadir" id="caja-ia">
-    <h2 class="grupo-tipo" style="margin-top:0;">✨ Sugerencias de vuelos (IA)</h2>
+    <h2 class="grupo-tipo" style="margin-top:0;">✨ Sugerencias de IA para este viaje</h2>
+    <p style="font-size:13px; color: var(--color-texto-suave); margin: 0 0 10px;">
+      Vuelos, alojamiento y actividades orientativos según destino y fechas. No son precios en tiempo real.
+    </p>
     <input type="text" id="origen-ia" placeholder="Tu ciudad de origen (ej: Cracovia)">
-    <button id="pedir-sugerencias">Pedir sugerencias</button>
+    <button id="pedir-sugerencias">Pedir sugerencias del viaje</button>
     <p id="mensaje-ia" style="font-size:13px; color: var(--color-texto-suave); margin: 8px 0 0;"></p>
     <div id="resultado-ia"></div>
   </div>
@@ -215,25 +225,59 @@
           })
         });
 
-        const sugerencias = await respuesta.json();
+        const datos = await respuesta.json();
 
-        if (!Array.isArray(sugerencias)) {
-          mensajeIA.textContent = "La IA no devolvió el formato esperado. Prueba otra vez.";
-          console.error("Respuesta inesperada:", sugerencias);
+        if (datos.error) {
+          mensajeIA.textContent = "Error de la IA: " + JSON.stringify(datos.error);
+          console.error("Error de la IA:", datos.error);
           return;
         }
 
-        mensajeIA.textContent = "Sugerencias orientativas, no son precios en tiempo real.";
+        mensajeIA.textContent = "Sugerencias orientativas, no son precios ni disponibilidad en tiempo real.";
+        resultadoIA.innerHTML = "";
 
-        sugerencias.forEach(function (s) {
-          const tarjeta = document.createElement("div");
-          tarjeta.classList.add("tarjeta-sugerencia-ia");
-          tarjeta.innerHTML =
-            '<div class="opcion">' + s.opcion + '</div>' +
-            '<div class="ruta">' + s.ruta + '</div>' +
-            '<div class="consejo">' + s.consejo + '</div>';
-          resultadoIA.appendChild(tarjeta);
+        // Función auxiliar para no repetir el mismo código 3 veces:
+        // pinta una categoría entera (título + sus tarjetas) a partir
+        // de una lista de sugerencias y una función que sabe cómo
+        // convertir cada sugerencia concreta en HTML.
+        function pintarCategoria(titulo, lista, construirTarjeta) {
+          if (!lista || lista.length === 0) return;
+
+          const encabezado = document.createElement("h3");
+          encabezado.classList.add("categoria-ia");
+          encabezado.textContent = titulo;
+          resultadoIA.appendChild(encabezado);
+
+          lista.forEach(function (item) {
+            const tarjeta = document.createElement("div");
+            tarjeta.classList.add("tarjeta-sugerencia-ia");
+            tarjeta.innerHTML = construirTarjeta(item);
+            resultadoIA.appendChild(tarjeta);
+          });
+        }
+
+        pintarCategoria("✈️ Vuelos", datos.vuelos, function (v) {
+          return '<div class="titulo-sugerencia">' + v.opcion + '</div>' +
+            '<div class="detalle-sugerencia">' + v.ruta + '</div>' +
+            '<div class="consejo">' + v.consejo + '</div>';
         });
+
+        pintarCategoria("🛏️ Alojamiento", datos.alojamiento, function (a) {
+          return '<div class="titulo-sugerencia">' + a.zona + '</div>' +
+            '<div class="detalle-sugerencia">' + a.tipo + '</div>' +
+            '<div class="consejo">' + a.consejo + '</div>';
+        });
+
+        pintarCategoria("🎟️ Actividades", datos.actividades, function (act) {
+          return '<div class="titulo-sugerencia">' + act.nombre + '</div>' +
+            '<div class="detalle-sugerencia">' + act.descripcion + '</div>' +
+            '<div class="consejo">' + act.consejo + '</div>';
+        });
+
+        if (!datos.vuelos && !datos.alojamiento && !datos.actividades) {
+          mensajeIA.textContent = "La IA no devolvió el formato esperado. Prueba otra vez.";
+          console.error("Respuesta inesperada:", datos);
+        }
       } catch (error) {
         console.error("Error llamando a la IA:", error);
         mensajeIA.textContent = "Error al pedir sugerencias. Revisa la consola (F12) para más detalle.";
