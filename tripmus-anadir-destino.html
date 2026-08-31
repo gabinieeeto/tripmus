@@ -3,14 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
   <title>Tripmus - Añadir destino</title>
   <style>
     :root {
-      --color-fondo: #faf9f6;
-      --color-texto: #262523;
-      --color-texto-suave: #7a766f;
-      --color-borde: #e5e1d8;
-      --color-marca: #d85a30;
+      --color-fondo: #F7F3EC;
+      --color-texto: #1E1B34;
+      --color-texto-suave: #6b6880;
+      --color-borde: #e6e0d4;
+      --color-marca: #FF6B45;
+      --color-acento-teal: #1FADA6;
     }
     * { box-sizing: border-box; }
     body {
@@ -28,6 +32,28 @@
       text-decoration: none;
       margin-bottom: 16px;
     }
+    .logo-tripmus {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      font-family: "Fredoka", sans-serif;
+      font-weight: 600;
+      font-size: 22px;
+      color: var(--color-texto);
+      margin-bottom: 14px;
+    }
+
+    .logo-tripmus .punto {
+      color: var(--color-marca);
+      font-size: 26px;
+      line-height: 0;
+    }
+
+    h1 {
+      font-family: "Fredoka", sans-serif;
+      font-weight: 600;
+    }
+
     h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
     p.subtitulo {
       color: var(--color-texto-suave);
@@ -46,7 +72,7 @@
       width: 100%;
       padding: 10px 12px;
       border: 1px solid var(--color-borde);
-      border-radius: 8px;
+      border-radius: 12px;
       font-size: 14px;
       background: white;
       font-family: inherit;
@@ -64,7 +90,7 @@
       background-color: var(--color-marca);
       color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: 12px;
       width: 100%;
     }
     #mensaje-estado {
@@ -72,9 +98,17 @@
       color: var(--color-texto-suave);
       margin-top: 12px;
     }
+    button {
+      transition: transform 0.08s ease, opacity 0.08s ease;
+    }
+    button:active {
+      transform: scale(0.98);
+    }
   </style>
 </head>
 <body>
+
+  <div class="logo-tripmus">Tripmus<span class="punto">.</span></div>
 
   <a class="volver" href="tripmus-recomendaciones.html">&larr; Volver a recomendaciones</a>
 
