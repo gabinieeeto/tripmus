@@ -102,6 +102,16 @@
       padding: 8px 14px;
       border-radius: 20px;
     }
+    .tarjeta-sugerencia-ia {
+      background: var(--color-fondo);
+      border: 1px solid var(--color-borde);
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-top: 10px;
+    }
+    .tarjeta-sugerencia-ia .opcion { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+    .tarjeta-sugerencia-ia .ruta { font-size: 13px; color: var(--color-texto-suave); margin-bottom: 4px; }
+    .tarjeta-sugerencia-ia .consejo { font-size: 12px; color: var(--color-acento-teal); font-weight: 600; }
   </style>
 </head>
 <body>
@@ -111,6 +121,14 @@
 
   <h1 id="titulo-viaje">Cargando viaje...</h1>
   <p class="subtitulo" id="subtitulo-viaje"></p>
+
+  <div class="caja-anadir" id="caja-ia">
+    <h2 class="grupo-tipo" style="margin-top:0;">✨ Sugerencias de vuelos (IA)</h2>
+    <input type="text" id="origen-ia" placeholder="Tu ciudad de origen (ej: Cracovia)">
+    <button id="pedir-sugerencias">Pedir sugerencias</button>
+    <p id="mensaje-ia" style="font-size:13px; color: var(--color-texto-suave); margin: 8px 0 0;"></p>
+    <div id="resultado-ia"></div>
+  </div>
 
   <div class="caja-anadir">
     <select id="tipo-enlace">
@@ -159,6 +177,69 @@
       cargarEnlaces();
     }
 
+    // ---------- SUGERENCIAS DE VUELOS CON IA ----------
+    // Esta es la URL de tu Edge Function. El nombre "rapid-action" es el que
+    // le puso Supabase por defecto al desplegarla; el código sigue siendo el mismo.
+    const urlFuncionIA = "https://jhowamfmrrhxphhijgsn.supabase.co/functions/v1/rapid-action";
+
+    let datosViaje = null; // aquí guardamos destino/fechas una vez cargados, para reutilizarlos
+
+    document.getElementById("pedir-sugerencias").addEventListener("click", async function () {
+      const origen = document.getElementById("origen-ia").value.trim();
+      const mensajeIA = document.getElementById("mensaje-ia");
+      const resultadoIA = document.getElementById("resultado-ia");
+
+      if (!datosViaje) {
+        mensajeIA.textContent = "Espera a que cargue la información del viaje.";
+        return;
+      }
+
+      mensajeIA.textContent = "Pensando en opciones de vuelo...";
+      resultadoIA.innerHTML = "";
+
+      try {
+        const respuesta = await fetch(urlFuncionIA, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            // La Edge Function tiene "Verify JWT" activado, y la clave anon
+            // de Supabase cumple ese requisito, así que la mandamos aquí.
+            "Authorization": "Bearer " + supabaseKey,
+            "apikey": supabaseKey
+          },
+          body: JSON.stringify({
+            destino: datosViaje.destino || "destino sin especificar",
+            origen: origen,
+            fechaInicio: datosViaje.fecha_inicio,
+            fechaFin: datosViaje.fecha_fin
+          })
+        });
+
+        const sugerencias = await respuesta.json();
+
+        if (!Array.isArray(sugerencias)) {
+          mensajeIA.textContent = "La IA no devolvió el formato esperado. Prueba otra vez.";
+          console.error("Respuesta inesperada:", sugerencias);
+          return;
+        }
+
+        mensajeIA.textContent = "Sugerencias orientativas, no son precios en tiempo real.";
+
+        sugerencias.forEach(function (s) {
+          const tarjeta = document.createElement("div");
+          tarjeta.classList.add("tarjeta-sugerencia-ia");
+          tarjeta.innerHTML =
+            '<div class="opcion">' + s.opcion + '</div>' +
+            '<div class="ruta">' + s.ruta + '</div>' +
+            '<div class="consejo">' + s.consejo + '</div>';
+          resultadoIA.appendChild(tarjeta);
+        });
+      } catch (error) {
+        console.error("Error llamando a la IA:", error);
+        mensajeIA.textContent = "Error al pedir sugerencias. Revisa la consola (F12) para más detalle.";
+      }
+    });
+
     async function cargarViaje() {
       const resultado = await cliente
         .from("viajes")
@@ -172,6 +253,7 @@
       }
 
       const v = resultado.data;
+      datosViaje = v; // guardamos para poder usarlos luego en la llamada a la IA
       document.getElementById("titulo-viaje").textContent = v.nombre;
       const fechas = (v.fecha_inicio && v.fecha_fin) ? v.fecha_inicio + " → " + v.fecha_fin : "Fechas por definir";
       document.getElementById("subtitulo-viaje").textContent = (v.destino || "Destino por definir") + " · " + fechas;
