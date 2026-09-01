@@ -219,7 +219,7 @@
     async function generarRecomendaciones(temporada, presupuestoMax) {
       let consulta = cliente
         .from("destinos")
-        .select("nombre, precio_desde, descripcion, transporte")
+        .select("nombre, precio_desde, descripcion, transporte, enlace_alojamiento")
         .eq("temporada", temporada)
         .order("precio_desde", { ascending: true });
 
@@ -267,7 +267,8 @@
           '<span class="precio">' + (d.precio_desde ? "desde " + d.precio_desde + "€" : "") + '</span>' +
           '</div>' +
           '<p class="descripcion">' + d.descripcion + '</p>' +
-          (d.transporte ? '<p class="descripcion" style="margin-top:4px;"><strong>Cómo llegar:</strong> ' + d.transporte + '</p>' : '');
+          (d.transporte ? '<p class="descripcion" style="margin-top:4px;"><strong>Cómo llegar:</strong> ' + d.transporte + '</p>' : '') +
+          (d.enlace_alojamiento ? '<a href="' + d.enlace_alojamiento + '" target="_blank" rel="noopener sponsored" style="display:inline-block; margin-top:10px; font-size:12px; font-weight:600; color:white; background-color: var(--color-acento-teal); padding:8px 14px; border-radius:20px; text-decoration:none;">Ver alojamiento →</a>' : '');
         contenedor.appendChild(tarjeta);
       });
     });

@@ -135,6 +135,12 @@
   <label for="descripcion">Por qué merece la pena (vuestra experiencia)</label>
   <textarea id="descripcion" placeholder="Ej: Nieve y auroras boreales en temporada alta, ambiente muy erasmus..."></textarea>
 
+  <label for="enlace-alojamiento">Enlace de alojamiento recomendado (opcional)</label>
+  <input type="text" id="enlace-alojamiento" placeholder="https://... (puede ser tu enlace de afiliado)">
+  <p style="font-size: 12px; color: var(--color-texto-suave); margin-top: 4px;">
+    Si tienes cuenta de afiliado en Booking.com u otra plataforma, pega aquí tu enlace con seguimiento — cualquier reserva que salga desde aquí generará comisión para Tripmus.
+  </p>
+
   <button id="guardar">Guardar destino</button>
   <p id="mensaje-estado"></p>
 
@@ -150,6 +156,7 @@
       const precio = document.getElementById("precio").value;
       const transporte = document.getElementById("transporte").value.trim();
       const descripcion = document.getElementById("descripcion").value.trim();
+      const enlaceAlojamiento = document.getElementById("enlace-alojamiento").value.trim();
 
       const mensaje = document.getElementById("mensaje-estado");
 
@@ -165,7 +172,8 @@
         temporada: temporada,
         precio_desde: precio === "" ? null : Number(precio),
         transporte: transporte === "" ? null : transporte,
-        descripcion: descripcion
+        descripcion: descripcion,
+        enlace_alojamiento: enlaceAlojamiento === "" ? null : enlaceAlojamiento
       });
 
       if (resultado.error) {
@@ -178,6 +186,7 @@
       document.getElementById("nombre").value = "";
       document.getElementById("precio").value = "";
       document.getElementById("transporte").value = "";
+      document.getElementById("enlace-alojamiento").value = "";
       document.getElementById("descripcion").value = "";
     });
   </script>
