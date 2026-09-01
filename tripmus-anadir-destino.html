@@ -111,6 +111,8 @@
 </head>
 <body>
 
+  <div id="banner-instalar-pwa" style="display:none; position:fixed; bottom:0; left:0; right:0; background: var(--color-marca); color:white; padding:12px 16px; font-size:13px; text-align:center; z-index:1000; cursor:pointer; font-weight:600;"></div>
+
   <div class="logo-tripmus">Tripmus<span class="punto">.</span></div>
 
   <a class="volver" href="tripmus-recomendaciones.html">&larr; Volver a recomendaciones</a>
@@ -196,6 +198,56 @@
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js').catch(function () {});
+    }
+
+    // ---------- INSTALACIÓN COMO APP ----------
+    let promptInstalacionDiferido = null;
+
+    function esIOS() {
+      return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+    }
+
+    function yaInstalada() {
+      return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    }
+
+    function mostrarBannerInstalar(tipo) {
+      if (yaInstalada()) return;
+      const banner = document.getElementById('banner-instalar-pwa');
+      if (!banner) return;
+
+      if (tipo === 'android') {
+        banner.textContent = '📲 Instalar Tripmus';
+        banner.onclick = function () {
+          if (promptInstalacionDiferido) {
+            promptInstalacionDiferido.prompt();
+            promptInstalacionDiferido.userChoice.then(function () {
+              promptInstalacionDiferido = null;
+              banner.style.display = 'none';
+            });
+          }
+        };
+      } else {
+        banner.textContent = '📲 Para instalar: toca Compartir → Añadir a pantalla de inicio';
+        banner.onclick = function () { banner.style.display = 'none'; };
+      }
+
+      banner.style.display = 'block';
+    }
+
+    // Chrome/Android dispara este evento cuando la web cumple los requisitos
+    // para ser instalada. Lo interceptamos para mostrar NUESTRO botón en vez
+    // del aviso genérico del navegador.
+    window.addEventListener('beforeinstallprompt', function (evento) {
+      evento.preventDefault();
+      promptInstalacionDiferido = evento;
+      mostrarBannerInstalar('android');
+    });
+
+    // iOS no tiene ese evento (Apple no lo permite), así que detectamos
+    // el sistema operativo directamente y mostramos las instrucciones.
+    if (esIOS() && !yaInstalada()) {
+      mostrarBannerInstalar('ios');
     }
   </script>
 </body>
