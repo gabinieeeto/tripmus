@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#FF6B45">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
@@ -205,7 +208,7 @@
   <p class="subtitulo">Si quieres afinar las recomendaciones, indica tu máximo. Puedes saltarte este paso sin problema.</p>
 
   <input type="text" id="nombre" placeholder="Tu nombre">
-  <input type="text" id="grupo" placeholder="Código de grupo" value="demo">
+  <p id="info-sesion" style="font-size: 12px; color: var(--color-texto-suave); margin-bottom: 12px;"></p>
 
   <div class="caja-slider">
     <div class="fila-slider">
@@ -235,7 +238,62 @@
   <script>
     const supabaseUrl = "https://jhowamfmrrhxphhijgsn.supabase.co";
     const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impob3dhbWZtcnJoeHBoaGlqZ3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzI3ODcsImV4cCI6MjEwMzc0ODc4N30.EwJi9JrniY3SpQPSl-JtnnwSLxCzMIpMQHLN4P7PUhE";
-    const cliente = supabase.createClient(supabaseUrl, supabaseKey);
+    function leerSesion() {
+      try {
+        const guardado = localStorage.getItem("tripmus_sesion");
+        return guardado ? JSON.parse(guardado) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+    function guardarSesion(sesion) { localStorage.setItem("tripmus_sesion", JSON.stringify(sesion)); }
+    function borrarSesion() { localStorage.removeItem("tripmus_sesion"); }
+
+    const clienteBase = supabase.createClient(supabaseUrl, supabaseKey);
+    let cliente = clienteBase;
+
+    async function asegurarSesion(pedirNombre) {
+      let sesion = leerSesion();
+      if (!sesion || !sesion.grupo || !sesion.pin || (pedirNombre && !sesion.nombre)) {
+        let grupo = (sesion && sesion.grupo) || "";
+        while (!grupo) {
+          grupo = prompt("Código de grupo (el mismo para todo tu equipo):");
+          if (grupo === null) return null;
+          grupo = grupo.trim();
+        }
+        const existeResp = await clienteBase.rpc("existe_grupo", { p_codigo: grupo });
+        const existe = existeResp.data === true;
+        let pin = "";
+        let pinValido = false;
+        while (!pinValido) {
+          if (existe) {
+            pin = prompt("Ese grupo ya existe. Introduce el PIN del grupo:");
+            if (pin === null) return null;
+            const comprobacion = await clienteBase.rpc("pin_valido", { p_codigo: grupo, p_pin: pin });
+            pinValido = comprobacion.data === true;
+            if (!pinValido) alert("PIN incorrecto. Pregunta a alguien de tu grupo o inténtalo de nuevo.");
+          } else {
+            pin = prompt("Grupo nuevo. Elige un PIN y compártelo con tu grupo:");
+            if (pin === null) return null;
+            const creado = await clienteBase.rpc("crear_grupo", { p_codigo: grupo, p_pin: pin });
+            pinValido = creado.data === true;
+            if (!pinValido) alert("Alguien acaba de crear ese grupo. Prueba con el PIN que os hayáis pasado.");
+          }
+        }
+        let nombre = (sesion && sesion.nombre) || "";
+        if (pedirNombre) nombre = prompt("Tu nombre:", nombre) || nombre;
+        sesion = { nombre: nombre, grupo: grupo, pin: pin };
+        guardarSesion(sesion);
+      }
+      cliente = supabase.createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { "x-grupo-pin": sesion.pin } }
+      });
+      return sesion;
+    }
+
+    function cambiarSesion() { borrarSesion(); location.reload(); }
+
+    let sesionActual = null;
 
     const mensajeEstado = document.getElementById("mensaje-estado");
     const slider = document.getElementById("slider-presupuesto");
@@ -249,22 +307,20 @@
 
     document.getElementById("guardar").addEventListener("click", async function () {
       const nombre = document.getElementById("nombre").value.trim();
-      const grupo = document.getElementById("grupo").value.trim();
 
-      if (nombre === "" || grupo === "") {
-        alert("Escribe tu nombre y el código de grupo");
+      if (nombre === "" || !sesionActual) {
+        alert("Escribe tu nombre");
         return;
       }
+      sesionActual.nombre = nombre;
+      guardarSesion(sesionActual);
 
       mensajeEstado.textContent = "Guardando...";
 
-      // Fíjate: aquí NO incluimos "disponibilidad" en el objeto.
-      // Si tu fila ya existe (porque guardaste tu horario antes), Supabase
-      // solo actualiza las columnas que le pasamos, y deja el resto tal cual.
       const resultado = await cliente
         .from("personas")
         .upsert(
-          { nombre: nombre, grupo: grupo, presupuesto: Number(slider.value) },
+          { nombre: nombre, grupo: sesionActual.grupo, presupuesto: Number(slider.value) },
           { onConflict: "nombre,grupo" }
         );
 
@@ -275,7 +331,7 @@
       }
 
       mensajeEstado.textContent = "Presupuesto guardado.";
-      cargarResumenGrupo(grupo);
+      cargarResumenGrupo(sesionActual.grupo);
     });
 
     document.getElementById("omitir").addEventListener("click", function () {
@@ -307,12 +363,20 @@
       document.getElementById("rango-grupo").textContent = minimo + "–" + maximo + "€";
     }
 
-    // Al cargar la página, si ya hay un código de grupo puesto (el "demo" por defecto),
-    // mostramos ya el resumen existente sin esperar a que guardes nada.
-    cargarResumenGrupo(document.getElementById("grupo").value.trim());
-    document.getElementById("grupo").addEventListener("blur", function () {
-      cargarResumenGrupo(this.value.trim());
-    });
+    (async function iniciar() {
+      const sesion = await asegurarSesion(true);
+      if (!sesion) return;
+      sesionActual = sesion;
+      document.getElementById("nombre").value = sesion.nombre;
+      document.getElementById("info-sesion").innerHTML =
+        "Grupo: <strong>" + sesion.grupo + "</strong> · <a href=\"#\" onclick=\"cambiarSesion(); return false;\" style=\"color: var(--color-acento-teal);\">cambiar</a>";
+      cargarResumenGrupo(sesion.grupo);
+    })();
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js').catch(function () {});
+    }
   </script>
 </body>
 </html>

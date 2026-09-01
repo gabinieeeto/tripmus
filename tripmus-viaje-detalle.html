@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#FF6B45">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
@@ -164,16 +167,65 @@
   <script>
     const supabaseUrl = "https://jhowamfmrrhxphhijgsn.supabase.co";
     const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impob3dhbWZtcnJoeHBoaGlqZ3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzI3ODcsImV4cCI6MjEwMzc0ODc4N30.EwJi9JrniY3SpQPSl-JtnnwSLxCzMIpMQHLN4P7PUhE";
-    const cliente = supabase.createClient(supabaseUrl, supabaseKey);
+    function leerSesion() {
+      try {
+        const guardado = localStorage.getItem("tripmus_sesion");
+        return guardado ? JSON.parse(guardado) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+    function guardarSesion(sesion) { localStorage.setItem("tripmus_sesion", JSON.stringify(sesion)); }
+
+    const clienteBase = supabase.createClient(supabaseUrl, supabaseKey);
+    let cliente = clienteBase;
 
     // ---------- LEER PARÁMETROS DE LA URL ----------
-    // Cuando entras aquí desde "Ver viajes", la URL tiene esta forma:
-    // tripmus-viaje-detalle.html?viaje=abc123&grupo=demo
-    // URLSearchParams nos deja leer esa parte de la URL como si fuera
-    // un pequeño diccionario, sin tener que trocear el texto a mano.
     const parametros = new URLSearchParams(window.location.search);
     const viajeId = parametros.get("viaje");
     const grupo = parametros.get("grupo");
+
+    // Aquí el grupo ya lo sabemos por la URL (viene del enlace de la tarjeta
+    // de viaje), así que solo necesitamos comprobar/pedir el PIN, no el grupo entero.
+    async function asegurarPin() {
+      let sesion = leerSesion();
+
+      if (sesion && sesion.grupo === grupo && sesion.pin) {
+        cliente = supabase.createClient(supabaseUrl, supabaseKey, {
+          global: { headers: { "x-grupo-pin": sesion.pin } }
+        });
+        return sesion;
+      }
+
+      const existeResp = await clienteBase.rpc("existe_grupo", { p_codigo: grupo });
+      const existe = existeResp.data === true;
+      let pin = "";
+      let pinValido = false;
+
+      while (!pinValido) {
+        if (existe) {
+          pin = prompt("Introduce el PIN del grupo \"" + grupo + "\":");
+          if (pin === null) return null;
+          const comprobacion = await clienteBase.rpc("pin_valido", { p_codigo: grupo, p_pin: pin });
+          pinValido = comprobacion.data === true;
+          if (!pinValido) alert("PIN incorrecto.");
+        } else {
+          pin = prompt("Este grupo es nuevo. Elige un PIN para \"" + grupo + "\":");
+          if (pin === null) return null;
+          const creado = await clienteBase.rpc("crear_grupo", { p_codigo: grupo, p_pin: pin });
+          pinValido = creado.data === true;
+          if (!pinValido) alert("Alguien acaba de crear ese grupo. Prueba de nuevo.");
+        }
+      }
+
+      sesion = { nombre: (sesion && sesion.nombre) || "", grupo: grupo, pin: pin };
+      guardarSesion(sesion);
+
+      cliente = supabase.createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { "x-grupo-pin": sesion.pin } }
+      });
+      return sesion;
+    }
 
     const etiquetasTipo = {
       vuelo: "✈️ Vuelo",
@@ -185,9 +237,18 @@
     if (!viajeId) {
       document.getElementById("titulo-viaje").textContent = "No se ha indicado ningún viaje";
       document.getElementById("subtitulo-viaje").textContent = "Vuelve a la lista de viajes y entra desde una tarjeta.";
+    } else if (!grupo) {
+      document.getElementById("titulo-viaje").textContent = "Falta el código de grupo en el enlace";
     } else {
-      cargarViaje();
-      cargarEnlaces();
+      (async function iniciar() {
+        const sesion = await asegurarPin();
+        if (!sesion) {
+          document.getElementById("titulo-viaje").textContent = "No se pudo verificar el grupo";
+          return;
+        }
+        cargarViaje();
+        cargarEnlaces();
+      })();
     }
 
     // ---------- SUGERENCIAS DE VUELOS CON IA ----------
@@ -406,6 +467,11 @@
 
       cargarEnlaces(); // recargamos la lista para que aparezca el nuevo enlace
     });
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js').catch(function () {});
+    }
   </script>
 </body>
 </html>

@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#FF6B45">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
@@ -117,10 +120,8 @@
   <h1>Viajes del grupo</h1>
   <p class="subtitulo">Cada viaje decidido tiene su propio espacio para centralizar vuelos, alojamiento y actividades.</p>
 
-  <div class="fila-inputs">
-    <input type="text" id="grupo" placeholder="Código de grupo" value="demo">
-    <button id="ver-viajes" style="max-width: 160px;">Ver viajes</button>
-  </div>
+  <p id="info-sesion" style="font-size: 12px; color: var(--color-texto-suave); margin-bottom: 4px;"></p>
+  <button id="ver-viajes" style="max-width: 160px; margin-bottom: 16px;">Actualizar</button>
 
   <p id="mensaje-estado"></p>
 
@@ -144,13 +145,68 @@
   <script>
     const supabaseUrl = "https://jhowamfmrrhxphhijgsn.supabase.co";
     const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impob3dhbWZtcnJoeHBoaGlqZ3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzI3ODcsImV4cCI6MjEwMzc0ODc4N30.EwJi9JrniY3SpQPSl-JtnnwSLxCzMIpMQHLN4P7PUhE";
-    const cliente = supabase.createClient(supabaseUrl, supabaseKey);
+    function leerSesion() {
+      try {
+        const guardado = localStorage.getItem("tripmus_sesion");
+        return guardado ? JSON.parse(guardado) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+    function guardarSesion(sesion) { localStorage.setItem("tripmus_sesion", JSON.stringify(sesion)); }
+    function borrarSesion() { localStorage.removeItem("tripmus_sesion"); }
+
+    const clienteBase = supabase.createClient(supabaseUrl, supabaseKey);
+    let cliente = clienteBase;
+
+    async function asegurarSesion(pedirNombre) {
+      let sesion = leerSesion();
+      if (!sesion || !sesion.grupo || !sesion.pin || (pedirNombre && !sesion.nombre)) {
+        let grupo = (sesion && sesion.grupo) || "";
+        while (!grupo) {
+          grupo = prompt("Código de grupo (el mismo para todo tu equipo):");
+          if (grupo === null) return null;
+          grupo = grupo.trim();
+        }
+        const existeResp = await clienteBase.rpc("existe_grupo", { p_codigo: grupo });
+        const existe = existeResp.data === true;
+        let pin = "";
+        let pinValido = false;
+        while (!pinValido) {
+          if (existe) {
+            pin = prompt("Ese grupo ya existe. Introduce el PIN del grupo:");
+            if (pin === null) return null;
+            const comprobacion = await clienteBase.rpc("pin_valido", { p_codigo: grupo, p_pin: pin });
+            pinValido = comprobacion.data === true;
+            if (!pinValido) alert("PIN incorrecto. Pregunta a alguien de tu grupo o inténtalo de nuevo.");
+          } else {
+            pin = prompt("Grupo nuevo. Elige un PIN y compártelo con tu grupo:");
+            if (pin === null) return null;
+            const creado = await clienteBase.rpc("crear_grupo", { p_codigo: grupo, p_pin: pin });
+            pinValido = creado.data === true;
+            if (!pinValido) alert("Alguien acaba de crear ese grupo. Prueba con el PIN que os hayáis pasado.");
+          }
+        }
+        let nombre = (sesion && sesion.nombre) || "";
+        if (pedirNombre) nombre = prompt("Tu nombre:", nombre) || nombre;
+        sesion = { nombre: nombre, grupo: grupo, pin: pin };
+        guardarSesion(sesion);
+      }
+      cliente = supabase.createClient(supabaseUrl, supabaseKey, {
+        global: { headers: { "x-grupo-pin": sesion.pin } }
+      });
+      return sesion;
+    }
+
+    function cambiarSesion() { borrarSesion(); location.reload(); }
+
+    let sesionActual = null;
 
     const mensajeEstado = document.getElementById("mensaje-estado");
 
     async function verViajes() {
-      const grupo = document.getElementById("grupo").value.trim();
-      if (grupo === "") { alert("Escribe un código de grupo"); return; }
+      if (!sesionActual) return;
+      const grupo = sesionActual.grupo;
 
       mensajeEstado.textContent = "Cargando viajes...";
 
@@ -198,14 +254,15 @@
     document.getElementById("ver-viajes").addEventListener("click", verViajes);
 
     document.getElementById("crear-viaje").addEventListener("click", async function () {
-      const grupo = document.getElementById("grupo").value.trim();
+      if (!sesionActual) return;
+      const grupo = sesionActual.grupo;
       const nombre = document.getElementById("nombre-viaje").value.trim();
       const destino = document.getElementById("destino-viaje").value.trim();
       const fechaInicio = document.getElementById("fecha-inicio").value;
       const fechaFin = document.getElementById("fecha-fin").value;
 
-      if (grupo === "" || nombre === "") {
-        alert("Escribe al menos el código de grupo y el nombre del viaje");
+      if (nombre === "") {
+        alert("Escribe al menos el nombre del viaje");
         return;
       }
 
@@ -234,8 +291,19 @@
       verViajes(); // recargamos la lista para que aparezca el nuevo viaje
     });
 
-    // Al abrir la página, cargamos ya los viajes del grupo por defecto
-    verViajes();
+    (async function iniciar() {
+      const sesion = await asegurarSesion(false);
+      if (!sesion) return;
+      sesionActual = sesion;
+      document.getElementById("info-sesion").innerHTML =
+        "Grupo: <strong>" + sesion.grupo + "</strong> · <a href=\"#\" onclick=\"cambiarSesion(); return false;\" style=\"color: var(--color-acento-teal);\">cambiar</a>";
+      verViajes();
+    })();
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js').catch(function () {});
+    }
   </script>
 </body>
 </html>
