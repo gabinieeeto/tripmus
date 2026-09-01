@@ -277,6 +277,29 @@
 
   <div id="banner-instalar-pwa" style="display:none; position:fixed; bottom:0; left:0; right:0; background: var(--color-marca); color:white; padding:12px 16px; font-size:13px; text-align:center; z-index:1000; cursor:pointer; font-weight:600;"></div>
 
+  <div id="overlay-bienvenida" style="display:none; position:fixed; inset:0; background: var(--color-fondo); z-index:2000; padding: 32px 20px; overflow-y:auto;">
+    <div class="logo-tripmus" style="font-size: 28px; margin-bottom: 20px;">Tripmus<span class="punto">.</span></div>
+    <h1 style="font-size: 20px; margin-bottom: 10px;">Coordinar viajes de grupo sin el caos de WhatsApp</h1>
+    <p style="color: var(--color-texto-suave); font-size: 14px; margin-bottom: 20px;">
+      Hecho para grupos de Erasmus que quieren viajar juntos sin perderse en 200 mensajes.
+    </p>
+    <div style="display:flex; flex-direction:column; gap:14px; margin-bottom: 28px;">
+      <div style="display:flex; gap:12px; align-items:flex-start;">
+        <span style="font-size:20px;">🗓️</span>
+        <div><strong>Mi disponibilidad</strong><br><span style="font-size:13px; color: var(--color-texto-suave);">Marca tus horas ocupadas una vez, siempre visible para el grupo.</span></div>
+      </div>
+      <div style="display:flex; gap:12px; align-items:flex-start;">
+        <span style="font-size:20px;">👥</span>
+        <div><strong>Ver grupo</strong><br><span style="font-size:13px; color: var(--color-texto-suave);">Descubre de un vistazo los mejores huecos para todos.</span></div>
+      </div>
+      <div style="display:flex; gap:12px; align-items:flex-start;">
+        <span style="font-size:20px;">✈️</span>
+        <div><strong>Viajes + IA</strong><br><span style="font-size:13px; color: var(--color-texto-suave);">Crea el viaje y pide sugerencias de vuelos, alojamiento y planes.</span></div>
+      </div>
+    </div>
+    <button id="btn-empezar-bienvenida" style="width:100%; padding:12px 20px; font-size:14px; font-weight:600; background-color: var(--color-marca); color:white; border:none; border-radius:12px; cursor:pointer;">Entendido, empezar</button>
+  </div>
+
   <div class="logo-tripmus">Tripmus<span class="punto">.</span></div>
 
   <div class="nav">
@@ -596,8 +619,12 @@
       mensajeEstado.textContent = "Disponibilidad guardada correctamente.";
     });
 
-    // ---------- ARRANQUE: resolvemos la sesión al cargar la página ----------
-    (async function iniciar() {
+    // ---------- ARRANQUE: bienvenida (solo la 1ª vez) y luego la sesión ----------
+    function yaVioBienvenida() {
+      return localStorage.getItem("tripmus_bienvenida_vista") === "true";
+    }
+
+    async function iniciarApp() {
       const sesion = await asegurarSesion(true); // true = esta pantalla necesita el nombre
       if (!sesion) return; // la persona canceló los prompts
 
@@ -609,7 +636,18 @@
       if (sesion.nombre) {
         cargarDisponibilidadGuardada(sesion.nombre, sesion.grupo);
       }
-    })();
+    }
+
+    if (yaVioBienvenida()) {
+      iniciarApp();
+    } else {
+      document.getElementById("overlay-bienvenida").style.display = "block";
+      document.getElementById("btn-empezar-bienvenida").addEventListener("click", function () {
+        localStorage.setItem("tripmus_bienvenida_vista", "true");
+        document.getElementById("overlay-bienvenida").style.display = "none";
+        iniciarApp();
+      });
+    }
   </script>
   <script>
     if ('serviceWorker' in navigator) {
