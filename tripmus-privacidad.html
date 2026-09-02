@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <title>Tripmus - Privacidad y aviso legal</title>
+  <style>
+    :root {
+      --color-fondo: #F7F3EC;
+      --color-texto: #1E1B34;
+      --color-texto-suave: #6b6880;
+      --color-borde: #e6e0d4;
+      --color-marca: #FF6B45;
+      --color-acento-teal: #1FADA6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      background-color: var(--color-fondo);
+      color: var(--color-texto);
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 24px 16px 60px;
+      line-height: 1.55;
+    }
+    .logo-tripmus {
+      display: flex; align-items: center; gap: 2px;
+      font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 22px; margin-bottom: 6px;
+    }
+    .logo-tripmus .punto { color: var(--color-marca); font-size: 26px; line-height: 0; }
+    a.volver {
+      display: inline-block; font-size: 13px; color: var(--color-texto-suave);
+      text-decoration: none; margin-bottom: 20px;
+    }
+    h1 { font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 22px; margin-bottom: 4px; }
+    p.actualizado { color: var(--color-texto-suave); font-size: 13px; margin-top: 0; margin-bottom: 24px; }
+    .aviso-borrador {
+      background: white;
+      border: 1px dashed var(--color-borde);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 12.5px;
+      color: var(--color-texto-suave);
+      margin-bottom: 28px;
+    }
+    h2 {
+      font-family: "Fredoka", sans-serif;
+      font-size: 16px;
+      margin: 28px 0 10px;
+      padding-top: 12px;
+      border-top: 1px solid var(--color-borde);
+    }
+    h2:first-of-type { border-top: none; padding-top: 0; }
+    h3 { font-size: 13.5px; margin: 16px 0 6px; }
+    p, li { font-size: 14px; color: var(--color-texto); }
+    ul { padding-left: 20px; margin: 6px 0; }
+    li { margin-bottom: 4px; }
+    .tabla-datos {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 16px;
+      font-size: 13px;
+    }
+    .tabla-datos th, .tabla-datos td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--color-borde);
+    }
+    .tabla-datos th {
+      background: white;
+      color: var(--color-texto-suave);
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .caja-contacto {
+      background: white;
+      border: 1px solid var(--color-borde);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="logo-tripmus">Tripmus<span class="punto">.</span></div>
+  <a class="volver" href="index.html">&larr; Volver a Tripmus</a>
+
+  <h1>Privacidad y aviso legal</h1>
+  <p class="actualizado">Última actualización: septiembre de 2026</p>
+
+  <div class="aviso-borrador">
+    Este documento describe de forma clara y honesta qué datos recoge Tripmus y por qué. Está pensado para un proyecto en fase temprana, usado por grupos de confianza. No sustituye asesoramiento legal profesional, y se revisará con más detalle antes de cualquier lanzamiento a gran escala.
+  </div>
+
+  <h2>1. Quién es responsable</h2>
+  <p>Tripmus es un proyecto independiente creado por un estudiante para facilitar la coordinación de viajes en grupos de estudiantes Erasmus. No está gestionado por una empresa registrada en esta fase del proyecto.</p>
+
+  <h2>2. Qué datos recogemos y por qué</h2>
+
+  <h3>Al usar tu grupo (disponibilidad, presupuesto, viajes)</h3>
+  <table class="tabla-datos">
+    <tr><th>Dato</th><th>Para qué se usa</th></tr>
+    <tr><td>Tu nombre</td><td>Identificarte dentro de tu grupo, para que el resto sepa de quién es cada disponibilidad</td></tr>
+    <tr><td>Tu disponibilidad horaria</td><td>Calcular los huecos comunes del grupo</td></tr>
+    <tr><td>Tu presupuesto (opcional)</td><td>Calcular la media y el rango del grupo</td></tr>
+    <tr><td>Código y PIN de grupo</td><td>Separar los datos de cada grupo y controlar quién puede verlos o editarlos</td></tr>
+  </table>
+  <p>Estos datos son visibles únicamente para quien tenga el código y el PIN de tu grupo concreto — no son públicos ni accesibles desde otros grupos.</p>
+
+  <h3>Al publicar en la Guía de la Comunidad o compartir un viaje</h3>
+  <p>Si inicias sesión con Google para publicar un destino o marcar un viaje como público, guardamos tu nombre y tu email (los que nos da Google) junto al contenido que publiques, para que quede claro quién lo ha compartido y poder moderar el contenido si hiciera falta. Esta información sí es visible públicamente, ya que es contenido pensado para compartirse.</p>
+
+  <h3>Notificaciones push</h3>
+  <p>Si activas las notificaciones, guardamos la información técnica que tu navegador genera para poder enviarte avisos (no incluye tu ubicación ni datos de navegación).</p>
+
+  <h2>3. Con quién compartimos datos</h2>
+  <p>No vendemos ni compartimos tus datos con fines publicitarios. Usamos estos proveedores externos para que Tripmus funcione:</p>
+  <ul>
+    <li><strong>Supabase</strong> — aloja la base de datos y la lógica del servidor</li>
+    <li><strong>Google</strong> — gestiona el inicio de sesión cuando decides publicar contenido en la comunidad</li>
+    <li><strong>Anthropic</strong> — genera las sugerencias de viaje con IA (recibe destino, fechas y origen que introduces, no tu nombre ni datos personales)</li>
+    <li><strong>GitHub Pages</strong> — aloja las páginas de Tripmus que ves en el navegador</li>
+  </ul>
+
+  <h2>4. Cuánto tiempo conservamos los datos</h2>
+  <p>Mantenemos los datos mientras el grupo esté activo. Si quieres que borremos los datos de tu grupo o los tuyos propios, escríbenos (ver contacto abajo) y lo haremos en un plazo razonable.</p>
+
+  <h2>5. Tus derechos</h2>
+  <p>Puedes pedirnos en cualquier momento:</p>
+  <ul>
+    <li>Ver qué datos tenemos sobre ti</li>
+    <li>Corregir datos incorrectos</li>
+    <li>Borrar tus datos o los de tu grupo</li>
+  </ul>
+  <p>Para ejercer cualquiera de estos derechos, contacta con nosotros (ver más abajo).</p>
+
+  <h2>6. Seguridad</h2>
+  <p>Cada grupo está protegido con un PIN que solo conocen sus miembros. Ningún dato de tu grupo es accesible sin ese PIN. Aun así, como cualquier proyecto en fase temprana, no podemos garantizar seguridad absoluta — evita compartir información especialmente sensible (documentos de identidad, datos bancarios) dentro de la app.</p>
+
+  <h2>7. Almacenamiento en tu dispositivo</h2>
+  <p>Guardamos tu nombre, grupo y PIN en el almacenamiento local de tu navegador, para no tener que pedírtelos cada vez que abres la app. Puedes borrarlos en cualquier momento usando el enlace "cambiar" dentro de la app, o borrando los datos del sitio desde la configuración de tu navegador.</p>
+
+  <h2>8. Menores de edad</h2>
+  <p>Tripmus está pensado para estudiantes universitarios en programas de movilidad internacional (típicamente mayores de 18 años). No está dirigido a menores de edad.</p>
+
+  <h2>9. Cambios en esta política</h2>
+  <p>Si actualizamos este documento de forma relevante, lo indicaremos aquí con la nueva fecha de actualización.</p>
+
+  <h2>10. Contacto</h2>
+  <div class="caja-contacto">
+    Para cualquier duda sobre tus datos, o para ejercer tus derechos, contacta con nosotros a través de <a href="https://github.com/gabinieeeto/tripmus" style="color: var(--color-acento-teal); font-weight:600;">el repositorio de Tripmus en GitHub</a>.
+  </div>
+
+</body>
+</html>
