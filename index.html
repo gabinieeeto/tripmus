@@ -321,7 +321,8 @@
   <p class="subtitulo">Marca las horas donde SUELES tener clase u ocupación fija.</p>
 
   <input type="text" id="nombre" placeholder="Tu nombre">
-  <p id="info-sesion" style="font-size: 12px; color: var(--color-texto-suave); margin-top: -14px; margin-bottom: 20px;"></p>
+  <p id="info-sesion" style="font-size: 12px; color: var(--color-texto-suave); margin-top: -14px; margin-bottom: 12px;"></p>
+  <p id="caja-notificaciones" style="font-size: 12px; margin-bottom: 20px;"></p>
 
   <!-- VISTA DE ESCRITORIO -->
   <div class="vista-escritorio">
@@ -361,6 +362,102 @@
     // El Project URL va SIN el "/rest/v1/" al final, solo la raíz.
     const supabaseUrl = "https://jhowamfmrrhxphhijgsn.supabase.co";
     const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impob3dhbWZtcnJoeHBoaGlqZ3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzI3ODcsImV4cCI6MjEwMzc0ODc4N30.EwJi9JrniY3SpQPSl-JtnnwSLxCzMIpMQHLN4P7PUhE";
+
+    // ---------- NOTIFICACIONES PUSH ----------
+    // Esta clave es la mitad "pública" del par VAPID — está pensada para
+    // vivir en el código del navegador, igual que la clave anon de Supabase.
+    const vapidPublicKey = "BIjp0e27nvaiojEkTfsCSu-nDZTbys9NzRk8kQ6p_Uo6vePnEJ-jErSMjWYVbYDCU2kllj78K2-2Dx9qIuow4C4";
+    const urlFuncionNotificar = "https://jhowamfmrrhxphhijgsn.supabase.co/functions/v1/enviar-notificacion";
+
+    // El navegador exige la clave pública en un formato binario concreto
+    // (Uint8Array), no como texto — esta función hace esa conversión.
+    function convertirClaveVapid(clave) {
+      const relleno = "=".repeat((4 - (clave.length % 4)) % 4);
+      const base64 = (clave + relleno).replace(/-/g, "+").replace(/_/g, "/");
+      const cadenaBinaria = window.atob(base64);
+      const bytes = new Uint8Array(cadenaBinaria.length);
+      for (let i = 0; i < cadenaBinaria.length; i++) {
+        bytes[i] = cadenaBinaria.charCodeAt(i);
+      }
+      return bytes;
+    }
+
+    async function activarNotificaciones() {
+      const caja = document.getElementById("caja-notificaciones");
+
+      if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+        caja.textContent = "Tu navegador no soporta notificaciones push.";
+        return;
+      }
+
+      const permiso = await Notification.requestPermission();
+      if (permiso !== "granted") {
+        caja.textContent = "No has dado permiso para las notificaciones.";
+        return;
+      }
+
+      const registro = await navigator.serviceWorker.ready;
+      const suscripcion = await registro.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertirClaveVapid(vapidPublicKey)
+      });
+
+      const datosSuscripcion = suscripcion.toJSON();
+
+      const resultado = await cliente.from("suscripciones_push").insert({
+        grupo: sesionActual.grupo,
+        nombre: sesionActual.nombre,
+        endpoint: datosSuscripcion.endpoint,
+        p256dh: datosSuscripcion.keys.p256dh,
+        auth_key: datosSuscripcion.keys.auth
+      });
+
+      if (resultado.error) {
+        console.error("Supabase error:", resultado.error.message);
+        caja.textContent = "Error al activar notificaciones.";
+        return;
+      }
+
+      caja.textContent = "🔔 Notificaciones activadas para este dispositivo.";
+    }
+
+    function mostrarBotonNotificaciones() {
+      const caja = document.getElementById("caja-notificaciones");
+      if (Notification.permission === "granted") {
+        caja.textContent = "🔔 Notificaciones activadas para este dispositivo.";
+        return;
+      }
+      caja.innerHTML = '<a href="#" id="link-activar-notif" style="color: var(--color-acento-teal); font-weight:600;">🔔 Activar notificaciones de este grupo</a>';
+      document.getElementById("link-activar-notif").addEventListener("click", function (evento) {
+        evento.preventDefault();
+        activarNotificaciones();
+      });
+    }
+
+    // Avisa al resto del grupo de que algo ha cambiado (sin molestar a quien
+    // acaba de hacer el cambio, con "excluirNombre").
+    async function avisarAlGrupo(titulo, mensaje) {
+      try {
+        await fetch(urlFuncionNotificar, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + supabaseKey,
+            "apikey": supabaseKey
+          },
+          body: JSON.stringify({
+            grupo: sesionActual.grupo,
+            titulo: titulo,
+            mensaje: mensaje,
+            excluirNombre: sesionActual.nombre
+          })
+        });
+      } catch (error) {
+        console.error("No se pudo avisar al grupo:", error);
+        // No hacemos nada más: si el aviso falla, no queremos que se rompa
+        // el guardado de disponibilidad por algo secundario como esto.
+      }
+    }
     // ---------- SESIÓN COMPARTIDA (nombre, grupo, PIN) ----------
     // Se guarda en localStorage del navegador, así que solo hay que
     // escribirlo una vez por dispositivo, no en cada pantalla.
@@ -663,6 +760,7 @@
       }
 
       mensajeEstado.textContent = "Disponibilidad guardada correctamente.";
+      avisarAlGrupo("Disponibilidad actualizada", sesionActual.nombre + " ha actualizado su disponibilidad.");
     });
 
     // ---------- ARRANQUE: bienvenida (solo la 1ª vez) y luego la sesión ----------
@@ -678,6 +776,8 @@
       document.getElementById("nombre").value = sesion.nombre;
       document.getElementById("info-sesion").innerHTML =
         "Grupo: <strong>" + sesion.grupo + "</strong> · <a href=\"#\" onclick=\"cambiarSesion(); return false;\" style=\"color: var(--color-acento-teal);\">cambiar</a>";
+
+      mostrarBotonNotificaciones();
 
       if (sesion.nombre) {
         cargarDisponibilidadGuardada(sesion.nombre, sesion.grupo);
