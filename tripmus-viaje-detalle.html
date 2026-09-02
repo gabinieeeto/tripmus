@@ -141,6 +141,10 @@
   <h1 id="titulo-viaje">Cargando viaje...</h1>
   <p class="subtitulo" id="subtitulo-viaje"></p>
 
+  <div id="caja-compartir" style="background: white; border: 1px solid var(--color-borde); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; font-size: 13px;">
+    Cargando...
+  </div>
+
   <div class="caja-anadir" id="caja-ia">
     <h2 class="grupo-tipo" style="margin-top:0;">✨ Sugerencias de IA para este viaje</h2>
     <p style="font-size:13px; color: var(--color-texto-suave); margin: 0 0 10px;">
@@ -404,7 +408,7 @@
     async function cargarViaje() {
       const resultado = await cliente
         .from("viajes")
-        .select("nombre, destino, fecha_inicio, fecha_fin")
+        .select("nombre, destino, fecha_inicio, fecha_fin, publico")
         .eq("id", viajeId)
         .maybeSingle();
 
@@ -418,6 +422,61 @@
       document.getElementById("titulo-viaje").textContent = v.nombre;
       const fechas = (v.fecha_inicio && v.fecha_fin) ? v.fecha_inicio + " → " + v.fecha_fin : "Fechas por definir";
       document.getElementById("subtitulo-viaje").textContent = (v.destino || "Destino por definir") + " · " + fechas;
+
+      actualizarCajaCompartir();
+    }
+
+    // ---------- COMPARTIR CON LA COMUNIDAD ----------
+    async function actualizarCajaCompartir() {
+      const caja = document.getElementById("caja-compartir");
+
+      if (datosViaje.publico) {
+        caja.innerHTML = "🌍 Este viaje ya es visible en la <a href=\"tripmus-recomendaciones.html\" style=\"color: var(--color-acento-teal); font-weight:600;\">Guía de la Comunidad</a>.";
+        return;
+      }
+
+      const resultadoUsuario = await cliente.auth.getUser();
+      const usuario = resultadoUsuario.data.user;
+
+      if (usuario) {
+        const nombre = usuario.user_metadata && usuario.user_metadata.full_name ? usuario.user_metadata.full_name : usuario.email;
+        caja.innerHTML =
+          "Sesión: <strong>" + nombre + "</strong><br>" +
+          '<button id="btn-compartir-comunidad" style="margin-top:8px; padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer; background-color: var(--color-acento-teal); color:white; border:none; border-radius:20px;">🌍 Compartir con la comunidad</button>';
+
+        document.getElementById("btn-compartir-comunidad").addEventListener("click", async function () {
+          const nombreAutor = usuario.user_metadata && usuario.user_metadata.full_name ? usuario.user_metadata.full_name : usuario.email;
+
+          const resultado = await cliente
+            .from("viajes")
+            .update({
+              publico: true,
+              publicado_por_nombre: nombreAutor,
+              publicado_por_email: usuario.email
+            })
+            .eq("id", viajeId);
+
+          if (resultado.error) {
+            console.error("Supabase error:", resultado.error.message);
+            alert("No se pudo compartir: " + resultado.error.message);
+            return;
+          }
+
+          datosViaje.publico = true;
+          actualizarCajaCompartir();
+        });
+      } else {
+        caja.innerHTML =
+          '<button id="btn-login-google" style="padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer; background-color: var(--color-texto); color:white; border:none; border-radius:20px;">Iniciar sesión con Google</button> ' +
+          '<span style="color:var(--color-texto-suave);">para poder compartir este viaje con la comunidad.</span>';
+
+        document.getElementById("btn-login-google").addEventListener("click", function () {
+          cliente.auth.signInWithOAuth({
+            provider: "google",
+            options: { redirectTo: window.location.href }
+          });
+        });
+      }
     }
 
     async function cargarEnlaces() {

@@ -115,7 +115,11 @@
 
   <div class="logo-tripmus">Tripmus<span class="punto">.</span></div>
 
-  <a class="volver" href="tripmus-recomendaciones.html">&larr; Volver a recomendaciones</a>
+  <a class="volver" href="tripmus-recomendaciones.html">&larr; Volver a la comunidad</a>
+
+  <div id="caja-login" style="background: white; border: 1px solid var(--color-borde); border-radius: 12px; padding: 10px 14px; font-size: 13px; margin-bottom: 16px;">
+    Comprobando sesión...
+  </div>
 
   <h1>Añadir un destino</h1>
   <p class="subtitulo">Basado en vuestra experiencia real. Esto alimenta las recomendaciones de todo el grupo.</p>
@@ -155,7 +159,36 @@
     const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impob3dhbWZtcnJoeHBoaGlqZ3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzI3ODcsImV4cCI6MjEwMzc0ODc4N30.EwJi9JrniY3SpQPSl-JtnnwSLxCzMIpMQHLN4P7PUhE";
     const cliente = supabase.createClient(supabaseUrl, supabaseKey);
 
+    let usuarioActual = null;
+
+    async function actualizarEstadoLogin() {
+      const resultado = await cliente.auth.getUser();
+      usuarioActual = resultado.data.user;
+      const caja = document.getElementById("caja-login");
+
+      if (usuarioActual) {
+        const nombre = usuarioActual.user_metadata && usuarioActual.user_metadata.full_name ? usuarioActual.user_metadata.full_name : usuarioActual.email;
+        caja.innerHTML = "✓ Sesión iniciada como <strong>" + nombre + "</strong>";
+      } else {
+        caja.innerHTML =
+          '<button id="btn-login-google" style="padding:9px 16px; font-size:13px; font-weight:600; cursor:pointer; background-color: var(--color-texto); color:white; border:none; border-radius:20px;">Iniciar sesión con Google</button> ' +
+          '<span style="color:var(--color-texto-suave);">Necesario para publicar en la comunidad.</span>';
+        document.getElementById("btn-login-google").addEventListener("click", function () {
+          cliente.auth.signInWithOAuth({
+            provider: "google",
+            options: { redirectTo: window.location.href }
+          });
+        });
+      }
+    }
+    actualizarEstadoLogin();
+
     document.getElementById("guardar").addEventListener("click", async function () {
+      if (!usuarioActual) {
+        alert("Tienes que iniciar sesión con Google antes de publicar un destino.");
+        return;
+      }
+
       const nombre = document.getElementById("nombre").value.trim();
       const temporada = document.getElementById("temporada").value;
       const precio = document.getElementById("precio").value;
@@ -172,13 +205,17 @@
 
       mensaje.textContent = "Guardando...";
 
+      const nombreAutor = usuarioActual.user_metadata && usuarioActual.user_metadata.full_name ? usuarioActual.user_metadata.full_name : usuarioActual.email;
+
       const resultado = await cliente.from("destinos").insert({
         nombre: nombre,
         temporada: temporada,
         precio_desde: precio === "" ? null : Number(precio),
         transporte: transporte === "" ? null : transporte,
         descripcion: descripcion,
-        enlace_alojamiento: enlaceAlojamiento === "" ? null : enlaceAlojamiento
+        enlace_alojamiento: enlaceAlojamiento === "" ? null : enlaceAlojamiento,
+        autor_nombre: nombreAutor,
+        autor_email: usuarioActual.email
       });
 
       if (resultado.error) {

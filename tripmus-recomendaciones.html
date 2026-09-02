@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
-  <title>Tripmus - Recomendaciones</title>
+  <title>Tripmus - Comunidad</title>
   <style>
     :root {
       --color-fondo: #F7F3EC;
@@ -78,11 +78,42 @@
 
     h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
 
+    h2.seccion {
+      font-family: "Fredoka", sans-serif;
+      font-size: 15px;
+      margin: 24px 0 10px;
+    }
+
     p.subtitulo {
       color: var(--color-texto-suave);
       font-size: 14px;
       margin-top: 0;
+      margin-bottom: 16px;
+    }
+
+    #caja-login {
+      background: white;
+      border: 1px solid var(--color-borde);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 13px;
       margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    #btn-login-google {
+      padding: 9px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      background-color: var(--color-texto);
+      color: white;
+      border: none;
+      border-radius: 20px;
     }
 
     .fila-inputs {
@@ -122,7 +153,7 @@
       border: 1px dashed var(--color-borde);
       border-radius: 12px;
       padding: 8px 12px;
-      margin-bottom: 20px;
+      margin-bottom: 8px;
     }
 
     .tarjeta-destino {
@@ -163,6 +194,26 @@
       margin: 0;
     }
 
+    .tarjeta-destino .autor {
+      font-size: 11px;
+      color: var(--color-acento-teal);
+      font-weight: 600;
+      margin-top: 6px;
+    }
+
+    .tarjeta-viaje-publico {
+      background: white;
+      border: 1px solid var(--color-borde);
+      border-radius: 16px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(30, 27, 52, 0.04);
+    }
+
+    .tarjeta-viaje-publico .nombre-viaje { font-weight: 600; font-size: 14px; }
+    .tarjeta-viaje-publico .detalle-viaje { font-size: 12px; color: var(--color-texto-suave); margin-top: 2px; }
+    .tarjeta-viaje-publico .autor { font-size: 11px; color: var(--color-acento-teal); font-weight: 600; margin-top: 6px; }
+
     #resultado {
       display: none;
     }
@@ -186,10 +237,28 @@
   <div id="banner-instalar-pwa" style="display:none; position:fixed; bottom:0; left:0; right:0; background: var(--color-marca); color:white; padding:12px 16px; font-size:13px; text-align:center; z-index:1000; cursor:pointer; font-weight:600;"></div>
 
   <div class="logo-tripmus">Tripmus<span class="punto">.</span></div>
-  <a class="volver" href="tripmus-viajes.html" style="display:inline-block; font-size:13px; color: var(--color-texto-suave); text-decoration:none; margin-bottom:16px;">&larr; Volver a viajes</a>
 
-  <h1>Guía de destinos</h1>
-  <p class="subtitulo">Ideas basadas en vuestra propia experiencia real de viaje, para inspiraros antes de decidir.</p>
+  <div class="nav">
+    <a href="index.html">Mi disponibilidad</a>
+    <a href="tripmus-grupo.html">Ver grupo</a>
+    <a href="tripmus-presupuesto.html">Presupuesto</a>
+    <a href="tripmus-viajes.html">Viajes</a>
+    <a href="tripmus-recomendaciones.html" class="activo">Comunidad</a>
+  </div>
+
+  <h1>Guía de la comunidad</h1>
+  <p class="subtitulo">Viajes reales y destinos recomendados por otros estudiantes Erasmus.</p>
+
+  <div id="caja-login">
+    <span id="texto-login">Comprobando sesión...</span>
+  </div>
+
+  <h2 class="seccion">🌍 Viajes compartidos</h2>
+  <div id="lista-viajes-publicos">
+    <p style="font-size:13px; color: var(--color-texto-suave);">Cargando...</p>
+  </div>
+
+  <h2 class="seccion">📍 Destinos recomendados</h2>
 
   <div class="fila-inputs">
     <select id="temporada">
@@ -201,14 +270,13 @@
     <input type="text" id="presupuesto-max" placeholder="Presupuesto máx (€), opcional">
   </div>
 
-  <button id="generar">Buscar recomendaciones</button>
+  <button id="generar">Buscar destinos</button>
 
   <p class="aviso-simulado">
-    Estas recomendaciones vienen de la guía que vosotros mismos vais construyendo con vuestra experiencia real.
-    <a href="tripmus-anadir-destino.html">+ Añadir un destino nuevo</a>
+    Estos destinos vienen de la comunidad. <a href="tripmus-anadir-destino.html">+ Añadir un destino nuevo</a>
   </p>
 
-  <p id="cargando">Pensando en destinos...</p>
+  <p id="cargando">Buscando destinos...</p>
 
   <div id="resultado"></div>
 
@@ -218,13 +286,84 @@
     const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impob3dhbWZtcnJoeHBoaGlqZ3NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzI3ODcsImV4cCI6MjEwMzc0ODc4N30.EwJi9JrniY3SpQPSl-JtnnwSLxCzMIpMQHLN4P7PUhE";
     const cliente = supabase.createClient(supabaseUrl, supabaseKey);
 
+    // ---------- LOGIN CON GOOGLE ----------
+    // A diferencia del PIN de grupo (que protege datos privados), esta sesión
+    // es para dar una IDENTIDAD REAL a quien publica contenido en la comunidad.
+    // Supabase guarda esta sesión automáticamente en el navegador, así que no
+    // hace falta que nosotros la gestionemos a mano como con el PIN.
+    async function actualizarEstadoLogin() {
+      const resultado = await cliente.auth.getUser();
+      const usuario = resultado.data.user;
+      const caja = document.getElementById("texto-login");
+
+      if (usuario) {
+        const nombre = usuario.user_metadata && usuario.user_metadata.full_name ? usuario.user_metadata.full_name : usuario.email;
+        caja.innerHTML =
+          "Sesión: <strong>" + nombre + "</strong> · " +
+          '<a href="#" id="cerrar-sesion-google" style="color: var(--color-acento-teal);">Cerrar sesión</a>';
+        document.getElementById("cerrar-sesion-google").addEventListener("click", async function (evento) {
+          evento.preventDefault();
+          await cliente.auth.signOut();
+          location.reload();
+        });
+      } else {
+        caja.innerHTML = '<button id="btn-login-google">Iniciar sesión con Google</button> <span style="color:var(--color-texto-suave); font-size:12px;">(solo necesario para publicar)</span>';
+        document.getElementById("btn-login-google").addEventListener("click", function () {
+          cliente.auth.signInWithOAuth({
+            provider: "google",
+            options: { redirectTo: window.location.href }
+          });
+        });
+      }
+
+      return usuario;
+    }
+
+    // ---------- VIAJES PÚBLICOS DE LA COMUNIDAD ----------
+    async function cargarViajesPublicos() {
+      const contenedor = document.getElementById("lista-viajes-publicos");
+
+      const resultado = await cliente
+        .from("viajes")
+        .select("nombre, destino, fecha_inicio, fecha_fin, publicado_por_nombre")
+        .eq("publico", true)
+        .order("creado_en", { ascending: false })
+        .limit(20);
+
+      if (resultado.error) {
+        console.error("Supabase error:", resultado.error.message);
+        contenedor.innerHTML = '<p style="font-size:13px; color: var(--color-texto-suave);">No se pudieron cargar los viajes.</p>';
+        return;
+      }
+
+      if (resultado.data.length === 0) {
+        contenedor.innerHTML = '<p style="font-size:13px; color: var(--color-texto-suave);">Todavía nadie ha compartido un viaje. ¡Sé el primero desde el detalle de tu viaje!</p>';
+        return;
+      }
+
+      contenedor.innerHTML = "";
+      resultado.data.forEach(function (v) {
+        const fechas = (v.fecha_inicio && v.fecha_fin) ? v.fecha_inicio + " → " + v.fecha_fin : "Fechas por definir";
+        const tarjeta = document.createElement("div");
+        tarjeta.classList.add("tarjeta-viaje-publico");
+        tarjeta.innerHTML =
+          '<div class="nombre-viaje">' + v.nombre + '</div>' +
+          '<div class="detalle-viaje">' + (v.destino || "Destino por definir") + " · " + fechas + '</div>' +
+          (v.publicado_por_nombre ? '<div class="autor">Compartido por ' + v.publicado_por_nombre + '</div>' : '');
+        contenedor.appendChild(tarjeta);
+      });
+    }
+
+    actualizarEstadoLogin();
+    cargarViajesPublicos();
+
     // ---------- FUNCIÓN QUE TRAE LAS RECOMENDACIONES ----------
     // Ya no es simulada: consulta de verdad la tabla "destinos" que vosotros
     // vais rellenando a mano en tripmus-anadir-destino.html.
     async function generarRecomendaciones(temporada, presupuestoMax) {
       let consulta = cliente
         .from("destinos")
-        .select("nombre, precio_desde, descripcion, transporte, enlace_alojamiento")
+        .select("nombre, precio_desde, descripcion, transporte, enlace_alojamiento, autor_nombre")
         .eq("temporada", temporada)
         .order("precio_desde", { ascending: true });
 
@@ -273,6 +412,7 @@
           '</div>' +
           '<p class="descripcion">' + d.descripcion + '</p>' +
           (d.transporte ? '<p class="descripcion" style="margin-top:4px;"><strong>Cómo llegar:</strong> ' + d.transporte + '</p>' : '') +
+          (d.autor_nombre ? '<div class="autor">Añadido por ' + d.autor_nombre + '</div>' : '') +
           (d.enlace_alojamiento ? '<a href="' + d.enlace_alojamiento + '" target="_blank" rel="noopener sponsored" style="display:inline-block; margin-top:10px; font-size:12px; font-weight:600; color:white; background-color: var(--color-acento-teal); padding:8px 14px; border-radius:20px; text-decoration:none;">Ver alojamiento →</a>' : '');
         contenedor.appendChild(tarjeta);
       });
