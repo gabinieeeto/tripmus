@@ -128,6 +128,13 @@
 
   <div id="banner-instalar-pwa" style="display:none; position:fixed; bottom:0; left:0; right:0; background: var(--color-marca); color:white; padding:12px 16px; font-size:13px; text-align:center; z-index:1000; cursor:pointer; font-weight:600;"></div>
 
+  <div id="modal-sesion" style="display:none; position:fixed; inset:0; background:rgba(30,27,52,0.55); z-index:3000; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:white; border-radius:16px; padding:24px 20px; max-width:340px; width:100%;">
+      <div class="logo-tripmus" style="font-size:20px; margin-bottom:14px;">Tripmus<span class="punto">.</span></div>
+      <div id="paso-modal-sesion"></div>
+    </div>
+  </div>
+
   <div class="logo-tripmus">Tripmus<span class="punto">.</span></div>
   <a class="volver" href="tripmus-viajes.html">&larr; Volver a viajes</a>
 
@@ -182,6 +189,34 @@
     const clienteBase = supabase.createClient(supabaseUrl, supabaseKey);
     let cliente = clienteBase;
 
+    function pedirTexto(titulo, subtitulo, tipoInput, valorInicial, textoBoton) {
+      document.getElementById("modal-sesion").style.display = "flex";
+      return new Promise(function (resolve) {
+        const contenedor = document.getElementById("paso-modal-sesion");
+        contenedor.innerHTML =
+          '<h3 style="font-size:16px; margin:0 0 4px;">' + titulo + '</h3>' +
+          (subtitulo ? '<p style="font-size:13px; color:var(--color-texto-suave); margin:0 0 14px;">' + subtitulo + '</p>' : '<div style="margin-bottom:10px;"></div>') +
+          '<input type="' + tipoInput + '" id="input-modal-sesion" style="width:100%; padding:10px 12px; border:1px solid var(--color-borde); border-radius:10px; font-size:14px; margin-bottom:8px; box-sizing:border-box;" value="' + (valorInicial || "") + '">' +
+          '<p id="error-modal-sesion" style="font-size:12px; color:#c0392b; margin:0 0 10px; display:none;"></p>' +
+          '<button id="btn-modal-sesion" style="width:100%; padding:11px; background:var(--color-marca); color:white; border:none; border-radius:10px; font-weight:600; font-size:14px; cursor:pointer;">' + textoBoton + '</button>';
+        const input = document.getElementById("input-modal-sesion");
+        const boton = document.getElementById("btn-modal-sesion");
+        input.focus();
+        function enviar() {
+          const valor = input.value.trim();
+          if (valor === "") return;
+          resolve(valor);
+        }
+        boton.addEventListener("click", enviar);
+        input.addEventListener("keydown", function (evento) { if (evento.key === "Enter") enviar(); });
+      });
+    }
+
+    function mostrarErrorModal(mensaje) {
+      const error = document.getElementById("error-modal-sesion");
+      if (error) { error.textContent = mensaje; error.style.display = "block"; }
+    }
+
     // ---------- LEER PARÁMETROS DE LA URL ----------
     const parametros = new URLSearchParams(window.location.search);
     const viajeId = parametros.get("viaje");
@@ -206,22 +241,21 @@
 
       while (!pinValido) {
         if (existe) {
-          pin = prompt("Introduce el PIN del grupo \"" + grupo + "\":");
-          if (pin === null) return null;
+          pin = await pedirTexto("Introduce el PIN", 'Grupo "' + grupo + '".', "password", "", "Entrar");
           const comprobacion = await clienteBase.rpc("pin_valido", { p_codigo: grupo, p_pin: pin });
           pinValido = comprobacion.data === true;
-          if (!pinValido) alert("PIN incorrecto.");
+          if (!pinValido) mostrarErrorModal("PIN incorrecto.");
         } else {
-          pin = prompt("Este grupo es nuevo. Elige un PIN para \"" + grupo + "\":");
-          if (pin === null) return null;
+          pin = await pedirTexto("Elige un PIN", 'Grupo nuevo: "' + grupo + '".', "password", "", "Crear grupo");
           const creado = await clienteBase.rpc("crear_grupo", { p_codigo: grupo, p_pin: pin });
           pinValido = creado.data === true;
-          if (!pinValido) alert("Alguien acaba de crear ese grupo. Prueba de nuevo.");
+          if (!pinValido) mostrarErrorModal("Alguien acaba de crear ese grupo. Prueba de nuevo.");
         }
       }
 
       sesion = { nombre: (sesion && sesion.nombre) || "", grupo: grupo, pin: pin };
       guardarSesion(sesion);
+      document.getElementById("modal-sesion").style.display = "none";
 
       cliente = supabase.createClient(supabaseUrl, supabaseKey, {
         global: { headers: { "x-grupo-pin": sesion.pin } }
