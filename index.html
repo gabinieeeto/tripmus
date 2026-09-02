@@ -382,6 +382,24 @@
       return bytes;
     }
 
+    // Guarda (o actualiza, si ya existía) la suscripción de este navegador
+    // en la base de datos. Usamos "upsert" en vez de "insert": si este
+    // mismo navegador ya tenía una suscripción de otra sesión anterior,
+    // la actualizamos en vez de fallar por el "endpoint" duplicado.
+    async function guardarSuscripcion(suscripcion) {
+      const datosSuscripcion = suscripcion.toJSON();
+      return await cliente.from("suscripciones_push").upsert(
+        {
+          grupo: sesionActual.grupo,
+          nombre: sesionActual.nombre,
+          endpoint: datosSuscripcion.endpoint,
+          p256dh: datosSuscripcion.keys.p256dh,
+          auth_key: datosSuscripcion.keys.auth
+        },
+        { onConflict: "endpoint" }
+      );
+    }
+
     async function activarNotificaciones() {
       const caja = document.getElementById("caja-notificaciones");
 
@@ -402,31 +420,62 @@
         applicationServerKey: convertirClaveVapid(vapidPublicKey)
       });
 
-      const datosSuscripcion = suscripcion.toJSON();
-
-      const resultado = await cliente.from("suscripciones_push").insert({
-        grupo: sesionActual.grupo,
-        nombre: sesionActual.nombre,
-        endpoint: datosSuscripcion.endpoint,
-        p256dh: datosSuscripcion.keys.p256dh,
-        auth_key: datosSuscripcion.keys.auth
-      });
+      const resultado = await guardarSuscripcion(suscripcion);
 
       if (resultado.error) {
         console.error("Supabase error:", resultado.error.message);
-        caja.textContent = "Error al activar notificaciones.";
+        caja.textContent = "Error al activar notificaciones: " + resultado.error.message;
         return;
       }
 
       caja.textContent = "🔔 Notificaciones activadas para este dispositivo.";
     }
 
-    function mostrarBotonNotificaciones() {
+    // A diferencia de antes, esta función YA NO se fía solo de
+    // "Notification.permission === 'granted'" para decir que todo está
+    // listo. Si el permiso ya estaba concedido, comprueba/asegura de
+    // verdad que la suscripción esté guardada en Supabase antes de
+    // mostrar el mensaje de éxito.
+    async function mostrarBotonNotificaciones() {
       const caja = document.getElementById("caja-notificaciones");
-      if (Notification.permission === "granted") {
-        caja.textContent = "🔔 Notificaciones activadas para este dispositivo.";
+
+      if (!("Notification" in window) || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+        caja.textContent = "";
         return;
       }
+
+      if (Notification.permission === "granted") {
+        caja.textContent = "Comprobando notificaciones...";
+        try {
+          const registro = await navigator.serviceWorker.ready;
+          let suscripcion = await registro.pushManager.getSubscription();
+
+          if (!suscripcion) {
+            // Tenías el permiso concedido, pero este navegador no tenía
+            // ninguna suscripción activa todavía (por ejemplo, si se
+            // limpió antes) — la creamos ahora.
+            suscripcion = await registro.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: convertirClaveVapid(vapidPublicKey)
+            });
+          }
+
+          const resultado = await guardarSuscripcion(suscripcion);
+
+          if (resultado.error) {
+            console.error("Supabase error:", resultado.error.message);
+            caja.textContent = "Permiso concedido, pero hubo un error al guardar: " + resultado.error.message;
+            return;
+          }
+
+          caja.textContent = "🔔 Notificaciones activadas para este dispositivo.";
+        } catch (error) {
+          console.error("Error asegurando la suscripción:", error);
+          caja.textContent = "Hubo un problema activando las notificaciones.";
+        }
+        return;
+      }
+
       caja.innerHTML = '<a href="#" id="link-activar-notif" style="color: var(--color-acento-teal); font-weight:600;">🔔 Activar notificaciones de este grupo</a>';
       document.getElementById("link-activar-notif").addEventListener("click", function (evento) {
         evento.preventDefault();
